@@ -18,6 +18,32 @@ LP の OpenSpec + Superpowers ワークフローを ai-scrum のスクラムフ�
 ⑤ 振り返り (retrospective)    ─→ 仕様プロセスの改善（任意）
 ```
 
+## ディレクトリ構造（2層モデル）
+
+```
+scrum/
+  specs/                    # 現行仕様ナレッジベース（真実の源泉、draft→confirmed）
+    README.md               # 索引・運用ルール・ドリフト検査手順
+    _TEMPLATE.md            # 仕様書ひな形
+    PBI-XXX.md              # PBI/機能単位の仕様
+  sprintXXX/
+    specs/
+      PBI-XXX.md            # プランニング時に複製する凍結change spec（active）
+```
+
+- **scrum/specs/** = 真実の源泉。スプリントをまたいで知識が累積する。
+- **scrum/sprintXXX/specs/** = そのスプリントの凍結コピー。開発者はこれに準拠して実装する。
+
+## status 遷移
+
+```
+[refinement] draft      scrum/specs/PBI-XXX.md を新規作成
+[planning]   active     scrum/sprintXXX/specs/PBI-XXX.md へ複製・詳細化
+[one-day]    （実装）     change spec に準拠して実装・ドリフト検査
+[review]     confirmed   受入OK → scrum/specs/PBI-XXX.md を確定更新
+             （差戻）      受入NG → draft のまま次スプリントへ
+```
+
 ## イベント対応表
 
 | OpenSpec | ai-scrum の対応イベント | 成果物 |
