@@ -43,3 +43,7 @@ coverage/
 # Temporary files
 tmp/
 temp/
+
+# AI tooling (local only)
+.claude/
+.serena/
