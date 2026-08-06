@@ -61,7 +61,7 @@ scrumフォルダから最新のsprintXXX(XXXは連番、最新のもののみ�
 ## (2)インクリメント作成
 - デイリースクラムの内容を踏まえて、田中、伊藤、山本、中村が並列にインクリメントを作成します。
  - インクリメント作成中はexplorerなどの長時間かかるタスクは最小限実行するように気を付けてください。
- - 対象PBIの change spec `scrum/sprintXXX/specs/PBI-XXX.md`（status: active）を確認し、受入基準・インターフェース・Non-goals に準拠して実装してください。
+ - 対象PBIの change spec `scrum/sprint${sprint_number}/specs/PBI-XXX.md`（status: active）を確認し、受入基準・インターフェース・Non-goals に準拠して実装してください。
  - [definition_of_done.md](../../../scrum/definition_of_done.md)を確認しながら作業をし、インクリメントが完成の定義（仕様準拠を含む）を満たすようにしてください。
 
 各エージェントのインクリメント作成が完了次第、小林エージェントがレビューを行います。

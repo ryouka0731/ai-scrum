@@ -97,7 +97,7 @@ DoD や product_backlog と同じ日本語ひな形スタイル。LP の proposa
 いずれも既存の手順・記録セクションを壊さず、追記・差し込みで対応する。
 
 ### backlog-refinement
-- 手順6「Ready判定」の直前に **「6.5 仕様ドラフト起票」** を追加。
+- 手順6「Ready判定」の直前に **「5.5 仕様ドラフト起票」** を追加。
   Ready にする PBI について、鈴木主導・伊藤/田中が技術面を補完し、`scrum/specs/PBI-XXX.md` を
   `_TEMPLATE.md` ベースで `status: draft` として作成する。「なぜ / Non-goals / 受入基準」は必須。
 - Ready 判定基準に **「仕様ドラフトが存在する」** を1項目追加。
