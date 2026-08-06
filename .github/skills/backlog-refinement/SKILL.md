@@ -69,6 +69,14 @@ description: バックログリファインメントを実施する。PBIの詳�
 - ビジネス価値、リスク、依存関係を考慮する
 - Priority: Critical > High > Medium > Low
 
+### 5.5 仕様ドラフトの起票
+鈴木エージェントが主導し、伊藤・田中エージェントが技術面を補完する形で、Ready 候補の各PBIについて仕様ドラフトを作成してください：
+- `scrum/specs/_TEMPLATE.md` をコピーして `scrum/specs/PBI-XXX.md` を作成する（XXXはPBI番号）
+- `status: draft` とする
+- **「なぜ」「Non-goals（やらないこと）」「受入基準」は必須**（受入基準はDoDと対応させ、はい/いいえで判定可能に）
+- 既に仕様ドラフトが存在するPBIは内容を最新化する
+- 仕様書は必要な要素を落とさず、簡潔に短く記述する
+
 ### 6. Ready判定
 鈴木エージェントが主導し、以下の基準を満たすPBIを「Ready」ステータスに変更する：
 - 説明が十分に明確
@@ -76,6 +84,7 @@ description: バックログリファインメントを実施する。PBIの詳�
 - 見積もりが完了
 - 依存関係が解決済みまたは明確
 - 1スプリント以内に完了可能なサイズ
+- 仕様ドラフト（`scrum/specs/PBI-XXX.md`, status: draft）が存在し、なぜ/Non-goals/受入基準が記述済み
 
 ### 7. リファインメント結果の監査
 小林エージェントを使い、リファインメントの結果を監査してください：
@@ -86,6 +95,7 @@ description: バックログリファインメントを実施する。PBIの詳�
  - 最後に git pull origin main を実行し、差分を確認・取得します。
 
 ## 記録
+- 鈴木エージェントにより、Ready 候補PBIの仕様ドラフト `scrum/specs/PBI-XXX.md`（status: draft）を新規作成・更新する
 - 鈴木エージェントにより、`scrum/product_backlog.csv` を更新する（詳細化、見積もり、ステータス変更）
 - 鈴木エージェントにより、完了したPBIは `scrum/product_backlog_done.csv` に移動する（元のCSVからは削除する）
 - 新規PBIがあればCSVに追加する
