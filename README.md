@@ -81,6 +81,8 @@ The entire AI Scrum Team participates to create and update the following based o
 - **Product Backlog** (`product_backlog.csv`) — PBI detailing, splitting, estimation & prioritization
 - **Definition of Done** (`definition_of_done.md`)
 
+> This template adopts **Spec-Driven Scrum**. See [docs/workflows/spec-driven-scrum.md](docs/workflows/spec-driven-scrum.md).
+
 ---
 
 ### Step 4. Sprint Planning — `/sprint-planning`
