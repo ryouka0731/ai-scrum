@@ -46,14 +46,14 @@ XXXは、既存のsprintフォルダと重複しない未使用の最小連番�
 
 ## トピック2.5: 仕様の確定
 - 伊藤・田中エージェントを使い、トピック2で選択した各PBIについて、仕様ドラフトを凍結コピーして確定させてください
-  - `scrum/specs/PBI-XXX.md`（status: draft）を `scrum/sprintXXX/specs/PBI-XXX.md` へ複製する（sprintXXX は本スプリント番号）
+  - `scrum/specs/PBI-XXX.md`（status: draft）を `scrum/sprint${sprint_number}/specs/PBI-XXX.md` へ複製する（sprintXXX は本スプリント番号）
   - インターフェース（画面・API・データ構造）と検証方法を実装可能なレベルまで具体化する
   - 複製先の `status:` を `active` に更新する
   - draft が未作成のPBIがあれば、この場で `scrum/specs/_TEMPLATE.md` から起票してから複製する
 
 ## トピック3: 選択した作業をどのように完了させるか？（How）
 - 伊藤エージェントを使い、選択したPBIをタスクに分解してください
-  - 各タスクは `scrum/sprintXXX/specs/PBI-XXX.md` の受入基準（AC）・インターフェース項目に紐づけること
+  - 各タスクは `scrum/sprint${sprint_number}/specs/PBI-XXX.md` の受入基準（AC）・インターフェース項目に紐づけること
 - 田中エージェントを使い、分解されたタスクをレビューしてください
   - タスクは1日以下の作業単位に分解すること
   - 各タスクに見積もり時間を設定すること
