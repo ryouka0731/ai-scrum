@@ -33,7 +33,8 @@ git rev-parse --is-inside-work-tree >/dev/null 2>&1 || exit 0
 # セッション単位の重複抑止: 変更セットのハッシュが前回と同じならスキップ
 sid=$(printf '%s' "$input" | jq -r '.session_id // "nosid"' 2>/dev/null || echo nosid)
 state="${TMPDIR:-/tmp}/ocr-autoreview-${sid}.hash"
-cur=$( { git status --porcelain; git diff; git diff --cached; } 2>/dev/null | shasum 2>/dev/null | awk '{print $1}')
+untracked=$(git ls-files --others --exclude-standard -z 2>/dev/null | while IFS= read -r -d '' f; do shasum "$f" 2>/dev/null; done)
+cur=$( { git status --porcelain; git diff; git diff --cached; printf '%s' "$untracked"; } 2>/dev/null | shasum 2>/dev/null | awk '{print $1}')
 [ -n "$cur" ] || exit 0
 if [ -f "$state" ] && [ "$(cat "$state" 2>/dev/null)" = "$cur" ]; then
   exit 0

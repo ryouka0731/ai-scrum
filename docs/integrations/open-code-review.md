@@ -6,7 +6,8 @@ Claude Code で本リポジトリを開くと以下が有効になります（�
 
 - `open-code-review` プラグイン（slash command `/open-code-review:review` / `:delegate-review`）
 - **実装完了時の自動レビュー**（Stop フック [`.claude/hooks/ocr-auto-review.sh`](../../.claude/hooks/ocr-auto-review.sh)）
-  — 未コミット変更があるときだけ **Delegation モード（APIキー不要・Claude 自身がレビュー）** で走ります
+  — 未コミット変更があるときだけ **Delegation モード**で走ります。Delegation は **OCR 側の LLM API キーが不要**で、
+  レビュー本体は Claude Code 自身が実行します（＝Claude Code の利用資格は必要）
 
 ## 唯一の前提: `ocr` CLI
 
@@ -32,8 +33,12 @@ Claude Code 内では `/open-code-review:delegate-review`（delegation）/ `/ope
 
 ## （任意）CI で常時レビュー
 
-CI レビューが必要なら `.github/workflows/ocr-review.yml` を追加し、Secrets/Variables を設定します
-（Delegation は CI 非対応、OCR-managed のみ）。
+CI レビューが必要なら `.github/workflows/ocr-review.yml` を追加し、**workflow を置く対象リポジトリの
+Settings → Secrets and variables → Actions** に以下を設定します（`pull_request_target` は base リポジトリの
+コンテキストで実行されるため、設定先は base リポジトリ側。Delegation は CI 非対応、OCR-managed のみ）。
+
+> ⚠️ **注意**: OCR-managed モードは変更ファイルを設定した LLM エンドポイントへ送信します。CI を有効化する前に、
+> 利用するプロバイダのデータ保持ポリシー・機密情報の取り扱いを確認してください。
 
 | 種別 | 名前 | 内容 |
 |---|---|---|
@@ -50,6 +55,7 @@ on:
 permissions:
   contents: read
   pull-requests: write
+  issues: write        # sticky summary コメントの投稿/更新に必要
 jobs:
   code-review:
     runs-on: ubuntu-latest
