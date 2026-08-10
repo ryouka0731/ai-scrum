@@ -48,6 +48,8 @@ XXXは、既存のsprintフォルダと重複しない未使用の最小連番�
 - 伊藤・田中エージェントを使い、トピック2で選択した各PBIについて、仕様ドラフトを凍結コピーして確定させてください
   - `scrum/specs/PBI-XXX.md`（status: draft）を `scrum/sprint${sprint_number}/specs/PBI-XXX.md` へ複製する（sprintXXX は本スプリント番号）
   - インターフェース（画面・API・データ構造）と検証方法を実装可能なレベルまで具体化する
+  - 具体化の最低基準: 各受入基準が DoD 9-2 で判定可能な粒度（画面要素・APIの入出力・データ項目が特定できる）まで具体化する
+  - 仕様書の様式・status 運用は `scrum/specs/README.md` に従う
   - 複製先の `status:` を `active` に更新する
   - draft が未作成のPBIがあれば、この場で `scrum/specs/_TEMPLATE.md` から起票してから複製する
 
