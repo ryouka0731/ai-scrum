@@ -1,7 +1,7 @@
 # 仕様書駆動スクラム (Spec-Driven Scrum) 設計書
 
 - 日付: 2026-08-06
-- ステータス: 設計合意済み（実装計画待ち）
+- ステータス: 実装済み（PR #1 でレビュー中）
 - 参照元: `WORK/SATTO/LP` の OpenSpec + Superpowers ワークフロー
   （`LP/openspec/`, `LP/docs/workflows/openspec-superpowers.md`）
 

@@ -150,8 +150,9 @@ git commit -m "feat: 仕様書テンプレート(_TEMPLATE.md)を追加"
 
 - [ ] **Step 2: 検証（リンク先の実在確認）**
 
-Run: `test -f docs/workflows/spec-driven-scrum.md && echo NG-later || echo "workflow doc is Task3"`
-（この時点では workflow doc 未作成でよい。相対リンク `../../docs/workflows/spec-driven-scrum.md` のパス形が正しいことを目視確認）
+Run: `test -f scrum/specs/README.md && echo "README created"`
+Expected: `README created`（workflow doc は Task3 で作成するため、この時点で未作成でよい）
+（相対リンク `../../docs/workflows/spec-driven-scrum.md` のパス形が正しいことを目視確認）
 
 Run: `grep -n "ドリフト検査手順" scrum/specs/README.md`
 Expected: 1行ヒット

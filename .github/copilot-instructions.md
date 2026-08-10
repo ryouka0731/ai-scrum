@@ -41,6 +41,7 @@ scrum/                          # スクラム成果物
 ├── product_backlog_done.csv    # 完了したPBIの一覧（CSV形式）
 ├── definition_of_done.md       # 完成の定義（DoD）
 ├── specs/                      # 仕様書ナレッジベース（現行仕様の真実の源泉）
+│   ├── README.md               # 索引・運用ルール・ドリフト検査手順
 │   ├── _TEMPLATE.md            # 仕様書ひな形
 │   └── PBI-XXX.md              # PBI/機能単位の仕様（status: draft/active/confirmed）
 ├── impediment_log.csv          # 障害物ログ（CSV形式）
