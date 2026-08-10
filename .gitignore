@@ -44,6 +44,11 @@ coverage/
 tmp/
 temp/
 
-# AI tooling (local only)
-.claude/
+# AI tooling
 .serena/
+
+# Claude Code: 共有するプロジェクト設定はコミットし、個人ローカル分は除外
+.claude/*
+!.claude/settings.json
+!.claude/hooks/
+.claude/settings.local.json
