@@ -80,6 +80,9 @@ The entire AI Scrum Team participates to create and update the following based o
 - **Product Goal** (`product_goal.md`)
 - **Product Backlog** (`product_backlog.csv`) — PBI detailing, splitting, estimation & prioritization
 - **Definition of Done** (`definition_of_done.md`)
+- **Spec Draft** (`scrum/specs/PBI-XXX.md`) — draft spec (why / Non-goals / acceptance criteria) for PBIs being marked Ready
+
+> This template adopts **Spec-Driven Scrum**. See [docs/workflows/spec-driven-scrum.md](docs/workflows/spec-driven-scrum.md).
 
 ---
 

@@ -12,6 +12,12 @@
 ## Git運用規約
 [Git運用規約](../scrum/git-operation-policy.md)を遵守すること（PRラベル・worktree運用など）
 
+## 仕様書駆動開発
+[仕様書駆動スクラム ワークフロー](../docs/workflows/spec-driven-scrum.md)に従うこと。
+- 仕様は `scrum/specs/`（現行仕様の真実の源泉）に蓄積し、スプリント作業は `scrum/sprintXXX/specs/` の凍結change specに準拠する。
+- refinement で draft 起票 → planning で active 複製 → one-day で準拠実装 → review で confirmed 同期。
+- 実装は DoD「9. 仕様準拠」で判定される。
+
 ## スクラムチームの体制
 - 顧客: 佐藤
 - プロダクトオーナー（PO）: 鈴木
@@ -34,10 +40,15 @@ scrum/                          # スクラム成果物
 ├── product_backlog.csv         # プロダクトバックログ（PBI一覧、CSV形式）
 ├── product_backlog_done.csv    # 完了したPBIの一覧（CSV形式）
 ├── definition_of_done.md       # 完成の定義（DoD）
+├── specs/                      # 仕様書ナレッジベース（現行仕様の真実の源泉）
+│   ├── README.md               # 索引・運用ルール・ドリフト検査手順
+│   ├── _TEMPLATE.md            # 仕様書ひな形
+│   └── PBI-XXX.md              # PBI/機能単位の仕様（status: draft/active/confirmed）
 ├── impediment_log.csv          # 障害物ログ（CSV形式）
 ├── impediment_log_resolved.csv # 解決済み障害物ログ（CSV形式）
 ├── velocity.csv                # ベロシティ記録（CSV形式）
 └── sprintXXX/                  # スプリント別フォルダ（sprint001, sprint002, ...）
+    ├── specs/                  # このスプリントの凍結change spec（PBI-XXX.md, status: active）
     ├── sprint_backlog.md       # スプリントバックログ（ゴール・PBI・タスク）
     ├── sprint_planning.md      # スプリントプランニング記録
     ├── sprint_review.md        # スプリントレビュー記録

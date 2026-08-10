@@ -72,6 +72,9 @@ AIスクラムチーム全員が参加し、依頼事項をもとに以下を作
 - **プロダクトゴール** (`product_goal.md`)
 - **プロダクトバックログ** (`product_backlog.csv`) — PBIの詳細化・分割・見積もり・優先順位付け
 - **完成の定義** (`definition_of_done.md`)
+- **仕様書ドラフト** (`scrum/specs/PBI-XXX.md`) — Ready にするPBIの仕様（なぜ/Non-goals/受入基準）を起票
+
+> 本テンプレートは **仕様書駆動スクラム** を採用しています。詳細は [docs/workflows/spec-driven-scrum.md](docs/workflows/spec-driven-scrum.md) を参照してください。
 
 ---
 
