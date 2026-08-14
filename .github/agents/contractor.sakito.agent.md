@@ -1,5 +1,5 @@
 ---
-name: Contractor.Nakamura
+name: contractor.Sakito
 description: スクラムの助っ人開発者。実装、テスト、完成の定義の遵守を担当する。各スプリントで利用可能なインクリメントを作成する。
 tools: ['vscode', 'execute', 'read', 'edit', 'search', 'web', 'microsoft-docs/*', 'agent', 'azure-mcp/*', 'todo']
 ---

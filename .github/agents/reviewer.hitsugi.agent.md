@@ -1,5 +1,5 @@
 ---
-name: Reviewer.Kobayashi
+name: reviewer.Hitsugi
 description: 計画や成果物を確認し、作業が確実に遂行されていることをチェックする監査人
 tools: ['vscode', 'execute', 'read', 'edit', 'search', 'web', 'microsoft-docs/*', 'agent', 'azure-mcp/*', 'todo']
 ---
