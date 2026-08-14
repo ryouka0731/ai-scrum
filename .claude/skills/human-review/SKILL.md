@@ -14,20 +14,20 @@ description: ユーザ(上長）向けのレビューを実施する。スプリ
 ## 準備（内部実行）
 以下のサブエージェントを Agent ツールで利用可能とします。
 
-- **鈴木エージェント**
+- **シュリエージェント**
   - 役割：Product Owner
-  - subagent_type：`product-owner-suzuki`
-  - 定義：`.claude/agents/product-owner-suzuki.md`
+  - subagent_type：`product-owner-shuri`
+  - 定義：`.claude/agents/product-owner-shuri.md`
 
-- **田中エージェント**
+- **ダイチエージェント**
   - 役割：Developer
-  - subagent_type：`developer-tanaka`
-  - 定義：`.claude/agents/developer-tanaka.md`
+  - subagent_type：`developer-daichi`
+  - 定義：`.claude/agents/developer-daichi.md`
 
-- **高橋エージェント**
+- **ケンジエージェント**
   - 役割：Scrum Master
-  - subagent_type：`scrum-master-takahashi`
-  - 定義：`.claude/agents/scrum-master-takahashi.md`
+  - subagent_type：`scrum-master-kenji`
+  - 定義：`.claude/agents/scrum-master-kenji.md`
 
 ---
 
@@ -44,8 +44,8 @@ description: ユーザ(上長）向けのレビューを実施する。スプリ
 
 ---
 
-### 2. 概要説明（鈴木エージェント）
-鈴木エージェントを用いて、選択された対象について **要点のみ** 説明します。
+### 2. 概要説明（シュリエージェント）
+シュリエージェントを用いて、選択された対象について **要点のみ** 説明します。
 
 - 長い説明は禁止
 - 状況・価値・今回の見どころに絞る
@@ -57,7 +57,7 @@ description: ユーザ(上長）向けのレビューを実施する。スプリ
 ---
 
 ### 3. デモ・ユーザレビュー（最重要）
-鈴木エージェントを使い、以下を実施してください。
+シュリエージェントを使い、以下を実施してください。
 
 1. ローカルでシステムを起動（E2Eテストデータ使用）
 2. `/playwright-cli` スキルを利用し、ヘッド付きで実画面をユーザに表示
@@ -75,15 +75,15 @@ description: ユーザ(上長）向けのレビューを実施する。スプリ
   - 主要機能を中心に
 
 #### フィードバック対応
-- 質問 → 鈴木エージェントが回答
-- フィードバック → 鈴木エージェントがその場で受け止め、メモとして保持
+- 質問 → シュリエージェントが回答
+- フィードバック → シュリエージェントがその場で受け止め、メモとして保持
 
 ユーザが「特にありません」「次に進んでください」と明示したら次へ進みます。
 
 ---
 
 ### 4. フィードバック整理・反映
-鈴木エージェントが以下を実施します。
+シュリエージェントが以下を実施します。
 
 - フィードバックを整理
 - 必要に応じて：
@@ -92,8 +92,8 @@ description: ユーザ(上長）向けのレビューを実施する。スプリ
   - その他ファイル修正
 
 判断に迷う場合：
-- 技術的観点 → 田中エージェントに相談
-- プロセス／優先度 → 高橋エージェントに相談
+- 技術的観点 → ダイチエージェントに相談
+- プロセス／優先度 → ケンジエージェントに相談
 
 ---
 

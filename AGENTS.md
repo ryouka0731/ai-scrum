@@ -15,25 +15,25 @@ Copilot / Claude Code はスクラムの各ロールを**サブエージェン�
 - スクラムイベントの手順は `.claude/skills/<name>/SKILL.md` に定義されています（内容は Codex でもそのまま使えます）。
 - 手順中に「**〇〇エージェントは Agent ツールで `subagent_type: xxx` として起動します**」とある箇所は、
   Codex では**あなた自身がそのロール（`.claude/agents/xxx.md` のペルソナ）を採用してそのステップを実行**してください。
-  複数ロールが登場する場合は、各ロールの視点を明示しながら**順番に**実行します（例:「＝＝ 鈴木(PO) として ＝＝」と宣言してから発言）。
+  複数ロールが登場する場合は、各ロールの視点を明示しながら**順番に**実行します（例:「＝＝ シュリ(PO) として ＝＝」と宣言してから発言）。
 - ロールの人格・責任・評価基準は `.claude/agents/<slug>.md` に記載されています。忠実に演じ、
-  特にレビュー担当（小林）・顧客（佐藤）は甘くせず厳格に評価すること。
+  特にレビュー担当（ヒツギ）・顧客（イツキ）は甘くせず厳格に評価すること。
 
 ## スクラムチームの体制（ロール定義）
 
 | ロール | 担当 | ペルソナ定義 |
 |---|---|---|
-| 顧客 | 佐藤 | `.claude/agents/customer-sato.md` |
-| プロダクトオーナー（PO） | 鈴木 | `.claude/agents/product-owner-suzuki.md` |
-| スクラムマスター（SM） | 高橋 | `.claude/agents/scrum-master-takahashi.md` |
-| 開発者 | 伊藤 | `.claude/agents/developer-ito.md` |
-| 開発者 | 田中 | `.claude/agents/developer-tanaka.md` |
-| 開発者（助っ人） | 山本 | `.claude/agents/contractor-yamamoto.md` |
-| 開発者（助っ人） | 中村 | `.claude/agents/contractor-nakamura.md` |
-| レビュー担当 | 小林 | `.claude/agents/reviewer-kobayashi.md` |
-| セキュリティ監査 | 渡辺 | `.claude/agents/security-watanabe.md` |
+| 顧客 | イツキ | `.claude/agents/customer-itsuki.md` |
+| プロダクトオーナー（PO） | シュリ | `.claude/agents/product-owner-shuri.md` |
+| スクラムマスター（SM） | ケンジ | `.claude/agents/scrum-master-kenji.md` |
+| 開発者 | マヤ | `.claude/agents/developer-maya.md` |
+| 開発者 | ダイチ | `.claude/agents/developer-daichi.md` |
+| 開発者（助っ人） | ヨミ | `.claude/agents/contractor-yomi.md` |
+| 開発者（助っ人） | サキト | `.claude/agents/contractor-sakito.md` |
+| レビュー担当 | ヒツギ | `.claude/agents/reviewer-hitsugi.md` |
+| セキュリティ監査 | ルカ | `.claude/agents/security-ruka.md` |
 
-※助っ人（山本・中村）は契約の関係でプランニングやレビュー/レトロには参加しないが、恒常メンバーとして扱う。
+※助っ人（ヨミ・サキト）は契約の関係でプランニングやレビュー/レトロには参加しないが、恒常メンバーとして扱う。
 
 ## スクラムイベント（手順定義）
 
@@ -41,7 +41,7 @@ Copilot / Claude Code はスクラムの各ロールを**サブエージェン�
 
 | 依頼 | 手順ファイル | 内容 |
 |---|---|---|
-| 依頼整理 | `.claude/skills/order-create/SKILL.md` | 顧客(佐藤)が `scrum/order/orderXXX.md` を整理 |
+| 依頼整理 | `.claude/skills/order-create/SKILL.md` | 顧客(イツキ)が `scrum/order/orderXXX.md` を整理 |
 | リファインメント | `.claude/skills/backlog-refinement/SKILL.md` | PBI詳細化・DoD・仕様ドラフト起票 |
 | プランニング | `.claude/skills/sprint-planning/SKILL.md` | ゴール・PBI選択・仕様確定・タスク分解 |
 | デイリー＋開発 | `.claude/skills/one-day-in-scrum/SKILL.md` | デイリースクラム＋インクリメント作成（1日分） |

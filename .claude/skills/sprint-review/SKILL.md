@@ -8,14 +8,14 @@ description: スプリントレビューを実施する。インクリメント�
 "準備"で起動した各サブエージェントを下記の指示通りに利用し、スプリントレビューを実施してください。
 
 ## 準備
-- 鈴木エージェントは Agent ツールで `subagent_type: product-owner-suzuki`(`.claude/agents/product-owner-suzuki.md`)として起動します。
-- 伊藤エージェントは Agent ツールで `subagent_type: developer-ito`(`.claude/agents/developer-ito.md`)として起動します。
-- 田中エージェントは Agent ツールで `subagent_type: developer-tanaka`(`.claude/agents/developer-tanaka.md`)として起動します。
-- 高橋エージェントは Agent ツールで `subagent_type: scrum-master-takahashi`(`.claude/agents/scrum-master-takahashi.md`)として起動します。
-- 佐藤エージェントは Agent ツールで `subagent_type: customer-sato`(`.claude/agents/customer-sato.md`)として起動します。
-- 小林エージェントは Agent ツールで `subagent_type: reviewer-kobayashi`(`.claude/agents/reviewer-kobayashi.md`)として起動します。
+- シュリエージェントは Agent ツールで `subagent_type: product-owner-shuri`(`.claude/agents/product-owner-shuri.md`)として起動します。
+- マヤエージェントは Agent ツールで `subagent_type: developer-maya`(`.claude/agents/developer-maya.md`)として起動します。
+- ダイチエージェントは Agent ツールで `subagent_type: developer-daichi`(`.claude/agents/developer-daichi.md`)として起動します。
+- ケンジエージェントは Agent ツールで `subagent_type: scrum-master-kenji`(`.claude/agents/scrum-master-kenji.md`)として起動します。
+- イツキエージェントは Agent ツールで `subagent_type: customer-itsuki`(`.claude/agents/customer-itsuki.md`)として起動します。
+- ヒツギエージェントは Agent ツールで `subagent_type: reviewer-hitsugi`(`.claude/agents/reviewer-hitsugi.md`)として起動します。
 
-山本と中村は契約の都合でレビューには参加できませんが、田中・伊藤経由でフィードバックがあれば提供している前提で進めます。
+ヨミとサキトは契約の都合でレビューには参加できませんが、ダイチ・マヤ経由でフィードバックがあれば提供している前提で進めます。
 
 ## 対象スプリント
 スプリント番号が引数で指定された場合はそのスプリントを対象とします。
@@ -29,27 +29,27 @@ description: スプリントレビューを実施する。インクリメント�
 ## スプリントレビューの実施
 
 ### 1. スプリントゴール達成状況の共有
-- 高橋エージェントを使い、スプリントゴールの達成状況をまとめてください
+- ケンジエージェントを使い、スプリントゴールの達成状況をまとめてください
 
 ### 2. インクリメントのデモと検査
-- 伊藤エージェント、田中エージェントを使い、完了したPBIのデモ内容を説明してください
+- マヤエージェント、ダイチエージェントを使い、完了したPBIのデモ内容を説明してください
 - 完成の定義を満たしていることを確認してください
 
 ### 3. ステークホルダーフィードバック
-- 佐藤エージェントを使い、以下の観点でフィードバックを提供してください：
+- イツキエージェントを使い、以下の観点でフィードバックを提供してください：
   - 機能性: 要求通りに動作するか
   - ユーザビリティ: 使いやすいか
   - ビジネス価値: 期待する価値を提供しているか
   - 改善提案: より良くするためのアイデア
 
 ### 4. 受入判定
-- 鈴木エージェントを使い、各PBIの受入判定を行ってください
+- シュリエージェントを使い、各PBIの受入判定を行ってください
   - 受入: 完成の定義を満たし、受入基準をクリア
   - 差戻: プロダクトバックログに戻す
 
 ### 4.5 仕様ナレッジの同期
-- 鈴木エージェントを使い、受入判定の結果を `scrum/specs/` に反映してください
-  - **同期前の仕様ドリフト検査**: confirmed 化する前に、小林エージェントが active change spec（`scrum/sprintXXX/specs/PBI-XXX.md`）と実装の仕様ドリフト検査（`scrum/specs/README.md` の手順）を行う。逸脱があれば README の分岐に従い、差戻とするか実装を修正してから同期する
+- シュリエージェントを使い、受入判定の結果を `scrum/specs/` に反映してください
+  - **同期前の仕様ドリフト検査**: confirmed 化する前に、ヒツギエージェントが active change spec（`scrum/sprintXXX/specs/PBI-XXX.md`）と実装の仕様ドリフト検査（`scrum/specs/README.md` の手順）を行う。逸脱があれば README の分岐に従い、差戻とするか実装を修正してから同期する
   - 受入OKのPBI: `scrum/specs/PBI-XXX.md` を、実装された実態（`scrum/sprintXXX/specs/PBI-XXX.md`）に合わせて更新し `status: confirmed` にする。変更履歴に受入日を追記する
   - 差戻のPBI: `scrum/specs/PBI-XXX.md` は `status: draft` のまま残し、差戻理由を変更履歴に追記する
 
@@ -57,16 +57,16 @@ description: スプリントレビューを実施する。インクリメント�
 - ビジネス環境や市場の変化、技術的な変化があれば共有する
 
 ### 6. プロダクトバックログの調整
-- 鈴木エージェントを使い、レビュー結果に基づいてプロダクトバックログを調整してください
+- シュリエージェントを使い、レビュー結果に基づいてプロダクトバックログを調整してください
 - 新たな機会や要望をPBIとして追加する
 
 ### 7. レビュー結果監査
-- 小林エージェントを使い、スプリントレビューの結果を監査してください
+- ヒツギエージェントを使い、スプリントレビューの結果を監査してください
   - 更新すべきファイルがきちんと更新されているか、抜け漏れが無いかをチェックします。
   - 手順4.5の仕様ドリフト検査（active change spec と実装の比較）が実施され、PBIごとの結果・仕様更新/実装修正/差戻の判断・未解決事項が `sprint_review.md` に記録されているかを確認します。
 
 ### 8. リポジトリへの反映
-- 高橋エージェントを使い、必要なファイルをマージして、全てmainリポジトリに反映させます。
+- ケンジエージェントを使い、必要なファイルをマージして、全てmainリポジトリに反映させます。
  - 最後に git pull origin main を実行し、差分を確認・取得します。
 
 ## 記録

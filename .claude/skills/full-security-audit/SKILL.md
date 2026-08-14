@@ -9,9 +9,9 @@ description: >
 # 包括的セキュリティ監査の実施
 
 ## 準備
-- 渡辺エージェントは Agent ツールで `subagent_type: security-watanabe`(`.claude/agents/security-watanabe.md`)として起動します。
-- 鈴木エージェントは Agent ツールで `subagent_type: product-owner-suzuki`(`.claude/agents/product-owner-suzuki.md`)として起動します。
-- 高橋エージェントは Agent ツールで `subagent_type: scrum-master-takahashi`(`.claude/agents/scrum-master-takahashi.md`)として起動します。
+- ルカエージェントは Agent ツールで `subagent_type: security-ruka`(`.claude/agents/security-ruka.md`)として起動します。
+- シュリエージェントは Agent ツールで `subagent_type: product-owner-shuri`(`.claude/agents/product-owner-shuri.md`)として起動します。
+- ケンジエージェントは Agent ツールで `subagent_type: scrum-master-kenji`(`.claude/agents/scrum-master-kenji.md`)として起動します。
 
 ## 目的
 
@@ -34,7 +34,7 @@ description: >
 
 ### Phase 2: 各レビューの実施
 
-渡辺エージェントが以下のスキルを実行する。
+ルカエージェントが以下のスキルを実行する。
  - 各スキルの発見事項を記録しながら進める。
 
 | 順序 | スキル | 対象 | スキップ条件 |
@@ -48,7 +48,7 @@ description: >
 
 ### Phase 3: 監査報告書の作成
 
-全レビュー完了後、以下の手順で渡辺エージェントが統合報告書を作成する：
+全レビュー完了後、以下の手順でルカエージェントが統合報告書を作成する：
 
 1. 各レビューの発見事項を一覧に統合する
 2. 各発見事項に脆弱性ID（SEC-001〜）、重大度、OWASP分類を付与する(必要に応じてWeb検索を活用して分類する)
@@ -90,12 +90,12 @@ description: >
 
 ### Phase 4: 監査報告書のスクラムチーム取り込み
 
-4. 改善ロードマップに基づき、バックログへのセキュリティPBI追加、セキュリティ障害追加を鈴木エージェントと高橋エージェントに提案する
-鈴木エージェントは改善ロードマップ内容を確認し、渡辺エージェントと確認しながらPBIを更新します。
-高橋エージェントは改善ロードマップ内容を確認し、渡辺エージェントと確認しながら障害リストを更新します。
+4. 改善ロードマップに基づき、バックログへのセキュリティPBI追加、セキュリティ障害追加をシュリエージェントとケンジエージェントに提案する
+シュリエージェントは改善ロードマップ内容を確認し、ルカエージェントと確認しながらPBIを更新します。
+ケンジエージェントは改善ロードマップ内容を確認し、ルカエージェントと確認しながら障害リストを更新します。
 
 ### Phase 5: リポジトリへの反映
 
-5. 監査報告書と各レビューの発見事項を高橋エージェントを用いて、mainリポジトリに反映する
+5. 監査報告書と各レビューの発見事項をケンジエージェントを用いて、mainリポジトリに反映する
  - 最後に git pull origin main を実行し、差分を確認・取得します。
 

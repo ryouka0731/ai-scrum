@@ -880,7 +880,7 @@ jobs:
             echo "APMDEPS"
           } >> "$GITHUB_OUTPUT"
         env:
-          AW_APM_PACKAGES: "[\"shyamagu-ms/ai-scrum/.github/skills/sprint-review\",\"shyamagu-ms/ai-scrum/.github/agents/customer.sato.agent.md\",\"shyamagu-ms/ai-scrum/.github/agents/product-owner.suzuki.agent.md\",\"shyamagu-ms/ai-scrum/.github/agents/developer.ito.agent.md\",\"shyamagu-ms/ai-scrum/.github/agents/developer.tanaka.agent.md\",\"shyamagu-ms/ai-scrum/.github/agents/scrum-master.takahashi.agent.md\"]"
+          AW_APM_PACKAGES: "[\"shyamagu-ms/ai-scrum/.github/skills/sprint-review\",\"shyamagu-ms/ai-scrum/.github/agents/customer.itsuki.agent.md\",\"shyamagu-ms/ai-scrum/.github/agents/product-owner.shuri.agent.md\",\"shyamagu-ms/ai-scrum/.github/agents/developer.maya.agent.md\",\"shyamagu-ms/ai-scrum/.github/agents/developer.daichi.agent.md\",\"shyamagu-ms/ai-scrum/.github/agents/scrum-master.kenji.agent.md\"]"
       - name: Pack APM packages
         id: apm_pack
         uses: microsoft/apm-action@a190b0b1a91031057144dc136acf9757a59c9e4d # v1.4.1

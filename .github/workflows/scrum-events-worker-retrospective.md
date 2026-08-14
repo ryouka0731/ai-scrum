@@ -40,10 +40,10 @@ imports:
     with:
       packages:
         - shyamagu-ms/ai-scrum/.github/skills/sprint-retrospective
-        - shyamagu-ms/ai-scrum/.github/agents/product-owner.suzuki.agent.md
-        - shyamagu-ms/ai-scrum/.github/agents/developer.ito.agent.md
-        - shyamagu-ms/ai-scrum/.github/agents/developer.tanaka.agent.md
-        - shyamagu-ms/ai-scrum/.github/agents/scrum-master.takahashi.agent.md
+        - shyamagu-ms/ai-scrum/.github/agents/product-owner.shuri.agent.md
+        - shyamagu-ms/ai-scrum/.github/agents/developer.maya.agent.md
+        - shyamagu-ms/ai-scrum/.github/agents/developer.daichi.agent.md
+        - shyamagu-ms/ai-scrum/.github/agents/scrum-master.kenji.agent.md
 timeout-minutes: 360
 permissions:
   contents: read
