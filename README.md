@@ -25,11 +25,11 @@ The template ships with five pre-configured AI personas (default Japanese names)
 
 | Agent | Role |
 |---|---|
-| Sato | Customer (Stakeholder Proxy) |
-| Suzuki | Product Owner |
-| Takahashi | Scrum Master |
-| Ito | Developer |
-| Tanaka | Developer |
+| Itsuki | Customer (Stakeholder Proxy) |
+| Shuri | Product Owner |
+| Kenji | Scrum Master |
+| Maya | Developer |
+| Daichi | Developer |
 
 ---
 
@@ -64,7 +64,7 @@ I'd like status tracking and a dashboard for visualization.
 /order-create
 ```
 
-The customer agent (Sato) reads the latest `orderXXX.md` and asks the user clarifying questions.  
+The customer agent (Itsuki) reads the latest `orderXXX.md` and asks the user clarifying questions.  
 Through this dialogue, requirements are refined and the `orderXXX.md` file is updated into a structured format the Scrum Team can act on.
 
 ---
@@ -128,8 +128,8 @@ Each sprint lasts **5 days** (1 week).
 A review event to inspect the Increment created during the Sprint:
 
 - Developers demo and explain the Increment
-- Customer agent (Sato) provides feedback (functionality, usability, business value)
-- Product Owner (Suzuki) makes accept/reject decisions for each PBI
+- Customer agent (Itsuki) provides feedback (functionality, usability, business value)
+- Product Owner (Shuri) makes accept/reject decisions for each PBI
 - Product Backlog is adjusted and velocity is recorded
 
 ---
@@ -161,13 +161,13 @@ If there are no changes to the request, you can resume from Step 4 (Sprint Plann
 
 These skills can be used at any time, independent of the sprint workflow.
 
-### Ask the Product Owner — `/ask-to-po-suzuki`
+### Ask the Product Owner — `/ask-to-po-shuri`
 
 ```
-/ask-to-po-suzuki
+/ask-to-po-shuri
 ```
 
-Starts an interactive dialogue session with the Product Owner (Suzuki).  
+Starts an interactive dialogue session with the Product Owner (Shuri).  
 You can ask questions, request information from project files, and add or modify PBIs in the Product Backlog.
 
 ### Ad-hoc Sprint — `/adhoc-sprint`
@@ -177,7 +177,7 @@ You can ask questions, request information from project files, and add or modify
 ```
 
 Handles ad-hoc / one-off requests from the user without going through the full Scrum cycle.  
-The Product Owner (Suzuki) receives the request and dispatches tasks to the appropriate sub-agents (developers, Scrum Master, reviewer), iterating with reviews from Kobayashi until the user's request is satisfied.
+The Product Owner (Shuri) receives the request and dispatches tasks to the appropriate sub-agents (developers, Scrum Master, reviewer), iterating with reviews from Hitsugi until the user's request is satisfied.
 
 ### User Review — `/human-review`
 

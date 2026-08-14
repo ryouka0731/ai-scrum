@@ -32,15 +32,15 @@
 ## スクラムチームの体制（サブエージェント）
 | ロール | 担当 | subagent_type |
 |---|---|---|
-| 顧客 | 佐藤 | `customer-sato` |
-| プロダクトオーナー（PO） | 鈴木 | `product-owner-suzuki` |
-| スクラムマスター（SM） | 高橋 | `scrum-master-takahashi` |
-| 開発者 | 伊藤 | `developer-ito` |
-| 開発者 | 田中 | `developer-tanaka` |
-| 開発者（助っ人） | 山本 | `contractor-yamamoto` |
-| 開発者（助っ人） | 中村 | `contractor-nakamura` |
-| レビュー担当 | 小林 | `reviewer-kobayashi` |
-| セキュリティ監査 | 渡辺 | `security-watanabe` |
+| 顧客 | イツキ | `customer-itsuki` |
+| プロダクトオーナー（PO） | シュリ | `product-owner-shuri` |
+| スクラムマスター（SM） | ケンジ | `scrum-master-kenji` |
+| 開発者 | マヤ | `developer-maya` |
+| 開発者 | ダイチ | `developer-daichi` |
+| 開発者（助っ人） | ヨミ | `contractor-yomi` |
+| 開発者（助っ人） | サキト | `contractor-sakito` |
+| レビュー担当 | ヒツギ | `reviewer-hitsugi` |
+| セキュリティ監査 | ルカ | `security-ruka` |
 
 ※助っ人は契約の関係でプランニングやレビュー/レトロには入れないが、恒常的なスクラムメンバーとして扱う。
 各スキルの手順に「どのエージェントを起動するか」が明記されているので、Agent ツールで対応する `subagent_type` を起動すること。
@@ -48,13 +48,13 @@
 ## 主なスクラムイベント（スキル）
 | コマンド | 内容 |
 |---|---|
-| `/order-create` | 顧客（佐藤）が依頼事項を整理 |
+| `/order-create` | 顧客（イツキ）が依頼事項を整理 |
 | `/backlog-refinement` | PBI詳細化・DoD・仕様ドラフト起票 |
 | `/sprint-planning` | スプリントゴール・PBI選択・仕様確定・タスク分解 |
 | `/one-day-in-scrum` | デイリースクラム＋インクリメント作成（1日分） |
 | `/sprint-review` | インクリメント検査・受入判定・仕様同期 |
 | `/sprint-retrospective` | Keep/Problem/Try |
-| `/ask-to-po-suzuki` `/adhoc-sprint` `/human-review` `/full-security-audit` `/my-mindset` 他 | ユーティリティ／セキュリティ監査 |
+| `/ask-to-po-shuri` `/adhoc-sprint` `/human-review` `/full-security-audit` `/my-mindset` 他 | ユーティリティ／セキュリティ監査 |
 
 ## プロジェクト構成
 

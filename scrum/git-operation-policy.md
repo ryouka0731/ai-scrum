@@ -11,7 +11,7 @@ PRの本文には、対応するIssue番号を `Fixes #<issue番号>` の形式�
 
 - メインworktree（`c:\Dev\ai-scrum-template`）は `main` 固定。作業はメインリポジトリの**親ディレクトリ**に作成した専用worktreeで行う。
 - 1作業 = 1worktree = 1ブランチ。
-- ディレクトリ名: `..\ai-scrum-template-<agent>-<topic>` / ブランチ名: `feature/<agent>/<topic>`（agentは小文字: `ito`, `tanaka`, `yamamoto`, `nakamura`, `watanabe` など）
+- ディレクトリ名: `..\ai-scrum-template-<agent>-<topic>` / ブランチ名: `feature/<agent>/<topic>`（agentは小文字: `maya`, `daichi`, `yomi`, `sakito`, `ruka` など）
 - 作業前に `git worktree list` で衝突確認。`node_modules` / `.venv` はworktreeごとに作り直す（共有しない）。
 
 ### 手順

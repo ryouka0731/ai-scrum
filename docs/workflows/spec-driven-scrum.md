@@ -12,7 +12,7 @@ LP の OpenSpec + Superpowers ワークフローを ai-scrum のスクラムフ�
 ② 確定 (sprint-planning)      ─→ 選択PBIの仕様を凍結コピーし詳細化・タスク紐づけ
                                  scrum/sprintXXX/specs/PBI-XXX.md (status: active)
 ③ 実装 (one-day-in-scrum)     ─→ change spec に準拠して実装
-                                 小林が仕様ドリフト検査
+                                 ヒツギが仕様ドリフト検査
 ④ 受入 (sprint-review)        ─→ 受入判定OKで現行仕様を確定
                                  scrum/specs/PBI-XXX.md (status: confirmed)
 ⑤ 振り返り (retrospective)    ─→ 仕様プロセスの改善（任意）
@@ -60,7 +60,7 @@ scrum/
 - **仕様の蓄積**: 毎スプリントの変更が `scrum/specs/` に現行仕様として蓄積され、
   AIチームが同じ問題を再試行・矛盾実装しなくなる。
 - **仕様準拠**: 開発者は凍結された change spec に準拠して実装し、DoD「9. 仕様準拠」で判定される。
-- **ドリフト検査**: 小林の監査が「作業をやったか」ではなく「仕様通りか」を検査する。
+- **ドリフト検査**: ヒツギの監査が「作業をやったか」ではなく「仕様通りか」を検査する。
 
 ## 関連ファイル
 
