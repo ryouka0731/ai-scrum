@@ -8,11 +8,11 @@ description: スプリントレトロスペクティブを実施する。個人�
 "準備"で起動した各サブエージェントを下記の指示通りに利用し、スプリントレトロスペクティブを実施してください。
 
 ## 準備
-- サブエージェントとして、鈴木エージェント(`.github/agents/product-owner.suzuki.agent.md`)をモデル"Claude Opus 4.7"で実行します。
-- サブエージェントとして、伊藤エージェント(`.github/agents/developer.ito.agent.md`)をモデル"Claude Opus 4.7"で実行します。
-- サブエージェントとして、田中エージェント(`.github/agents/developer.tanaka.agent.md`)をモデル"Claude Opus 4.7"で実行します。
-- サブエージェントとして、高橋エージェント(`.github/agents/scrum-master.takahashi.agent.md`)をモデル"Claude Opus 4.7"で実行します。
-- サブエージェントとして、小林エージェント(`.github/agents/reviewer.kobayashi.agent.md`)をモデル"GPT-5.5"で実行します。
+- 鈴木エージェントは Agent ツールで `subagent_type: product-owner-suzuki`(`.claude/agents/product-owner-suzuki.md`)として起動します。
+- 伊藤エージェントは Agent ツールで `subagent_type: developer-ito`(`.claude/agents/developer-ito.md`)として起動します。
+- 田中エージェントは Agent ツールで `subagent_type: developer-tanaka`(`.claude/agents/developer-tanaka.md`)として起動します。
+- 高橋エージェントは Agent ツールで `subagent_type: scrum-master-takahashi`(`.claude/agents/scrum-master-takahashi.md`)として起動します。
+- 小林エージェントは Agent ツールで `subagent_type: reviewer-kobayashi`(`.claude/agents/reviewer-kobayashi.md`)として起動します。
 
 山本と中村は契約の都合でレトロスペクティブには参加できませんが、田中・伊藤経由でフィードバックがあれば提供している前提で進めます。
 

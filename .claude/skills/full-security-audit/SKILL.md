@@ -9,9 +9,9 @@ description: >
 # 包括的セキュリティ監査の実施
 
 ## 準備
-- サブエージェントとして、渡辺エージェント(`.github/agents/security.watanabe.agent.md`)をモデル"GPT 5.5"で実行します。
-- サブエージェントとして、鈴木エージェント(`.github/agents/product-owner.suzuki.agent.md`)をモデル"Claude Opus 4.7"で実行します。
-- サブエージェントとして、高橋エージェント(`.github/agents/scrum-master.takahashi.agent.md`)をモデル"Claude Opus 4.7"で実行します。
+- 渡辺エージェントは Agent ツールで `subagent_type: security-watanabe`(`.claude/agents/security-watanabe.md`)として起動します。
+- 鈴木エージェントは Agent ツールで `subagent_type: product-owner-suzuki`(`.claude/agents/product-owner-suzuki.md`)として起動します。
+- 高橋エージェントは Agent ツールで `subagent_type: scrum-master-takahashi`(`.claude/agents/scrum-master-takahashi.md`)として起動します。
 
 ## 目的
 
