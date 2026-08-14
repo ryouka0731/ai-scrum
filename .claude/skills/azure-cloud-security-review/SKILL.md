@@ -88,14 +88,13 @@ Azure上にデプロイされたリソースのセキュリティ構成を評価
 5. **Microsoft Defender for Cloudの状態を確認する**
    - 以下を確認する：
      ```bash
-     # セキュリティ評価の確認
-     az security assessment list --output table
-
-     # セキュアスコアの確認
-     az security secure-score-controls list --output table
-
-     # 規制コンプライアンスの確認
-     az security regulatory-compliance-standards list --output table
+     # 全サブスクリプションを対象に確認する
+     for sub in $(az account list --query '[].id' -o tsv); do
+       echo "== subscription: $sub =="
+       az security assessment list --subscription "$sub" --output table
+       az security secure-score-controls list --subscription "$sub" --output table
+       az security regulatory-compliance-standards list --subscription "$sub" --output table
+     done
      ```
    - 検証項目：
      - Defender for Cloudが全サブスクリプションで有効化されているか
