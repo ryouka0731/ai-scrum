@@ -2,7 +2,7 @@
 
 > **🇯🇵 日本語版（メイン） → [README.md](README.md)**
 
-> **⚠️ Note:** This template currently operates entirely in **Japanese** (prompts, agent output, and artifacts). See [Language Notice](#-language-notice--currently-japanese-only) for details on how to switch to English.
+> **⚠️ Note:** This template currently operates entirely in **Japanese** (prompts, agent output, and artifacts). See [Language Notice](#language-notice--currently-japanese-only) for details on how to switch to English.
 
 A project template where an AI agent team executes Scrum development.  
 Leveraging GitHub Copilot's custom skills and agents, it automates a development process that follows the **Scrum Guide 2020**.
