@@ -6,10 +6,10 @@ description: 上長(ユーザ)との対話セッションを通じ、依頼事�
 # 依頼事項メモの作成・更新
 
 ## 準備
-- サブエージェントとして、佐藤エージェント(`.github/agents/customer.sato.agent.md`)をモデル"Claude Opus 4.7"で実行します。
+- サブエージェントとして、イツキエージェント(`.github/agents/customer.itsuki.agent.md`)をモデル"Claude Opus 4.7"で実行します。
 
 ## 手順
-1. 佐藤エージェントで、`scrum/order/orderXXX.md` を読み、内容を理解する（XXXは最新の番号のみを確認します。）
+1. イツキエージェントで、`scrum/order/orderXXX.md` を読み、内容を理解する（XXXは最新の番号のみを確認します。）
 2. スクラムチームに作業を依頼するにあたって、不明点やクリアにすべき点を上長と対話で確認してください。
 3. `scrum/order/orderXXX.md` を更新し、スクラムチームとの対話に備えます。
 4. 加えた変更をmainリポジトリに反映させます。

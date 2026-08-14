@@ -51,3 +51,5 @@ temp/
 .claude/*
 !.claude/settings.json
 !.claude/hooks/
+!.claude/agents/
+!.claude/skills/
