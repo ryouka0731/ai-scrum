@@ -23,8 +23,8 @@ description: >
 
      # Python
      pip install pip-audit
-     pip audit
-     pip audit -f json > pip-audit.json
+     pip-audit
+     pip-audit -f json > pip-audit.json
 
      # .NET
      dotnet list package --vulnerable

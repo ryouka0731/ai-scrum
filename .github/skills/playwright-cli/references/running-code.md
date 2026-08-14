@@ -26,10 +26,13 @@ playwright-cli run-code "async page => {
   await page.context().setGeolocation({ latitude: 51.5074, longitude: -0.1278 });
 }"
 
-# Clear geolocation override
+# Clear geolocation override (revoke only the coordinate override)
 playwright-cli run-code "async page => {
-  await page.context().clearPermissions();
+  await page.context().setGeolocation(null);
 }"
+# Note: clearPermissions() revokes ALL granted permissions (geolocation,
+# notifications, camera, etc.), not just the geolocation override. Use it
+# only when you intend to reset every permission at once.
 ```
 
 ## Permissions

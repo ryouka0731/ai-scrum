@@ -189,10 +189,10 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Gitleaks scan
-        uses: gitleaks/gitleaks-action@v2
+        uses: gitleaks/gitleaks-action@<commit-sha>  # 本番では検証済みcommit SHAでピン留めすること
 
       - name: Trivy vulnerability scan
-        uses: aquasecurity/trivy-action@master
+        uses: aquasecurity/trivy-action@<commit-sha>  # 本番では検証済みcommit SHAでピン留めすること
         with:
           scan-type: 'fs'
           scan-ref: '.'
@@ -202,7 +202,7 @@ jobs:
           severity: 'CRITICAL,HIGH'
 
       - name: Checkov IaC scan
-        uses: bridgecrewio/checkov-action@master
+        uses: bridgecrewio/checkov-action@<commit-sha>  # 本番では検証済みcommit SHAでピン留めすること
         with:
           directory: .
           quiet: true

@@ -48,7 +48,7 @@ description: >
      pnpm audit --json > npm-audit-report.json
 
      # Python の場合
-     pip audit -r requirements.txt -f json > pip-audit-report.json
+     pip-audit -r requirements.txt -f json > pip-audit-report.json
 
      # .NET の場合
      dotnet list package --vulnerable > dotnet-audit-report.txt

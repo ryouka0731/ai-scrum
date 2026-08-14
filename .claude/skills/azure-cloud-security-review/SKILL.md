@@ -92,7 +92,7 @@ Azure上にデプロイされたリソースのセキュリティ構成を評価
      az security assessment list --output table
 
      # セキュアスコアの確認
-     az security secure-score-control list --output table
+     az security secure-score-controls list --output table
 
      # 規制コンプライアンスの確認
      az security regulatory-compliance-standards list --output table

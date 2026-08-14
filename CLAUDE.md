@@ -63,7 +63,7 @@ scrum/                          # スクラム成果物
 ├── team_working_agreement.md   # チームワーキングアグリーメント
 ├── scrum_team_culture.md       # スクラムチームカルチャー
 ├── git-operation-policy.md     # Git運用規約
-└── order/                      # エンドユーザサイドの要求事項や依頼事項
+├── order/                      # エンドユーザサイドの要求事項や依頼事項
 │   └── orderXXX.md             # 個別の要求事項ファイル（XXXは連番。常に最新のみを確認する）
 ├── product_goal.md             # プロダクトゴール
 ├── product_backlog.csv         # プロダクトバックログ（PBI一覧、CSV形式）
