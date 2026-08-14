@@ -285,7 +285,7 @@ The prompts and skill definitions in this template are currently tuned for **Cla
 If you are using a different AI model, you may need to adjust the prompts or skill files to suit your model's characteristics. Results may vary depending on the model used.  
 Also, since this template heavily uses AI agents and consumes a large number of tokens, please check the billing model and costs for the model you are using and switch to a different model if necessary.
 
-### ⚠️ Language Notice — Currently Japanese Only
+### Language Notice — Currently Japanese Only
 
 This template's prompts, skill definitions, and all generated artifacts are currently **written in Japanese**. English speakers can still use the template, but the output will be in Japanese by default.
 
