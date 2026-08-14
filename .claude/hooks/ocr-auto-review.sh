@@ -30,6 +30,10 @@ git rev-parse --is-inside-work-tree >/dev/null 2>&1 || exit 0
 # 未コミット変更(staged/unstaged/untracked)が無ければ対象外
 [ -n "$(git status --porcelain 2>/dev/null)" ] || exit 0
 
+# コード拡張子の変更が無ければ対象外(Markdown/CSV/docs等だけの変更ではOCRを起動しない)
+changed=$( { git diff --name-only; git diff --cached --name-only; git ls-files --others --exclude-standard; } 2>/dev/null )
+printf '%s\n' "$changed" | grep -qiE '\.(ts|tsx|js|jsx|mjs|cjs|py|go|rs|java|rb|php|c|cc|cpp|cxx|h|hpp|hh|cs|swift|kt|kts|scala|vue|svelte|sql|sh|bash|zsh|ps1|lua|pl|pm|dart|ex|exs|erl|r|m|mm|yml|yaml|json|toml|tf|proto)$' || exit 0
+
 # セッション単位の重複抑止: 変更セットのハッシュが前回と同じならスキップ
 sid=$(printf '%s' "$input" | jq -r '.session_id // "nosid"' 2>/dev/null || echo nosid)
 state="${TMPDIR:-/tmp}/ocr-autoreview-${sid}.hash"
