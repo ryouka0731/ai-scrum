@@ -1,301 +1,281 @@
 # AI Scrum Template
 
-> **🇯🇵 日本語版はこちら → [README_jp.md](README_jp.md)**
+> **🇬🇧 English → [README_en.md](README_en.md)**
 
-> **⚠️ Note:** This template currently operates entirely in **Japanese** (prompts, agent output, and artifacts). See [Language Notice](#️-language-notice--currently-japanese-only) for details on how to switch to English.
-
-A project template where an AI agent team executes Scrum development.  
-Leveraging GitHub Copilot's custom skills and agents, it automates a development process that follows the **Scrum Guide 2020**.
+AIエージェントチームがスクラム開発を実行するプロジェクトテンプレートです。  
+GitHub Copilot のカスタムスキルとエージェントを活用し、スクラムガイド2020に準拠した開発プロセスを自動で進行します。
 
 ---
 
-## Overview
+## 概要
 
-This template includes **Scrum artifact templates** and **AI agent definitions** needed for Scrum development.  
-As a user (stakeholder / product owner's manager), you simply write your request — the AI Scrum Team autonomously handles:
+本テンプレートには、スクラム開発に必要な **成果物テンプレート** と **AIエージェント定義** が含まれています。  
+ユーザ（プロダクトオーナーの上長／ステークホルダー）は要望を書くだけで、AIスクラムチームが以下を自律的に実行します。
 
-- Product Backlog creation & management
-- Sprint Planning
-- Daily Scrum & Development (Increment creation)
-- Sprint Review & Retrospective
+- プロダクトバックログの作成・管理
+- スプリントプランニング
+- デイリースクラム & 開発（インクリメント作成）
+- スプリントレビュー & レトロスペクティブ
 
-### AI Scrum Team
+### AIスクラムチーム
 
-The template ships with five pre-configured AI personas (default Japanese names). These are placeholders defined in the skill files — you can rename them to fit your team.
-
-| Agent | Role |
+| エージェント | 役割 |
 |---|---|
-| Sato | Customer (Stakeholder Proxy) |
-| Suzuki | Product Owner |
-| Takahashi | Scrum Master |
-| Ito | Developer |
-| Tanaka | Developer |
+| 佐藤 | 顧客（ステークホルダー代理） |
+| 鈴木 | プロダクトオーナー |
+| 高橋 | スクラムマスター |
+| 伊藤 | 開発者 |
+| 田中 | 開発者 |
 
 ---
 
-## Getting Started
+## 使い方
 
-### Prerequisites
+### 推奨
 
-| Tool | Notes |
-|---|---|
-| **GitHub Copilot CLI** | Recommended — best experience for running skill commands |
-| **VS Code + GitHub Copilot** | Also supported; requires Agent Mode to be enabled |
+- GitHub Copilot CLI を推奨
+- VS Code + GitHub Copilot（Agent モード対応）でも実行可能
 
 ---
 
-### Step 1. Write Your Request
+### Step 1. 依頼事項を書く
 
-Describe what you want to build in `scrum/order/order001.md`.
+`scrum/order/order001.md` に、作りたいものの要望をざっくり記述します。
 
 ```markdown
-<!-- Example: scrum/order/order001.md -->
-I want a ticket management system.
-I'd like status tracking and a dashboard for visualization.
+<!-- 例: scrum/order/order001.md -->
+チケット管理システムを作ってほしい。
+ステータス管理やダッシュボードで可視化したい。
 ```
 
-> File numbering starts at `001`. For subsequent requests, create new files with incrementing numbers: `order002.md`, `order003.md`, etc.
+> ファイル名の連番は `001` から始まります。2回目以降は `order002.md`, `order003.md` ... と番号を増やして新規作成してください。
 
 ---
 
-### Step 2. Clarify the Request — `/order-create`
+### Step 2. 依頼事項を整理する — `/order-create`
 
 ```
 /order-create
 ```
 
-The customer agent (Sato) reads the latest `orderXXX.md` and asks the user clarifying questions.  
-Through this dialogue, requirements are refined and the `orderXXX.md` file is updated into a structured format the Scrum Team can act on.
+顧客エージェント（佐藤）が最新の `orderXXX.md` を読み込み、内容についてユーザに質問します。  
+対話を通じて要件が明確化され、`orderXXX.md` がスクラムチームに伝わる形に整理・更新されます。
 
 ---
 
-### Step 3. Backlog Refinement — `/backlog-refinement`
+### Step 3. バックログリファインメント — `/backlog-refinement`
 
 ```
 /backlog-refinement
 ```
 
-The entire AI Scrum Team participates to create and update the following based on the request:
+AIスクラムチーム全員が参加し、依頼事項をもとに以下を作成・更新します。
 
-- **Product Goal** (`product_goal.md`)
-- **Product Backlog** (`product_backlog.csv`) — PBI detailing, splitting, estimation & prioritization
-- **Definition of Done** (`definition_of_done.md`)
-- **Spec Draft** (`scrum/specs/PBI-XXX.md`) — draft spec (why / Non-goals / acceptance criteria) for PBIs being marked Ready
+- **プロダクトゴール** (`product_goal.md`)
+- **プロダクトバックログ** (`product_backlog.csv`) — PBIの詳細化・分割・見積もり・優先順位付け
+- **完成の定義** (`definition_of_done.md`)
+- **仕様書ドラフト** (`scrum/specs/PBI-XXX.md`) — Ready にするPBIの仕様（なぜ/Non-goals/受入基準）を起票
 
-> This template adopts **Spec-Driven Scrum**. See [docs/workflows/spec-driven-scrum.md](docs/workflows/spec-driven-scrum.md).
+> 本テンプレートは **仕様書駆動スクラム** を採用しています。詳細は [docs/workflows/spec-driven-scrum.md](docs/workflows/spec-driven-scrum.md) を参照してください。
 
 ---
 
-### Step 4. Sprint Planning — `/sprint-planning`
+### Step 4. スプリントプランニング — `/sprint-planning`
 
 ```
 /sprint-planning
 ```
 
-The AI Scrum Team conducts Sprint Planning:
+AIスクラムチームがスプリントプランニングを実施します。
 
-1. **Why** — Why is this Sprint valuable? (Sprint Goal formulation)
-2. **What** — What can be done this Sprint? (PBI selection)
-3. **How** — How will the chosen work get done? (Task breakdown & assignment)
+1. **Why** — なぜこのスプリントは価値があるのか？（スプリントゴール策定）
+2. **What** — このスプリントで何ができるか？（PBI選択）
+3. **How** — 選択した作業をどう完了させるか？（タスク分解・担当割り当て）
 
-Results are recorded in a new sprint folder (`sprintXXX/`).  
-Each sprint lasts **5 days** (1 week).
+結果は新しいスプリントフォルダ (`sprintXXX/`) に記録されます。  
+1スプリントは **5日間**（1週間）です。
 
 ---
 
-### Step 5. Daily Scrum & Development — `/one-day-in-scrum`
+### Step 5. デイリースクラム & 開発 — `/one-day-in-scrum`
 
 ```
 /one-day-in-scrum
 ```
 
-**Each execution covers one day** of Daily Scrum and development work:
+**1回の実行で1日分** のデイリースクラムと開発作業を行います。
 
-- Progress check for each developer (what was done yesterday / what's planned today / blockers)
-- Sprint Backlog updates
-- **Increment creation (actual code, etc.)**
+- 各開発者の進捗確認（昨日やったこと / 今日やること / 障害物）
+- スプリントバックログの更新
+- **インクリメント（実際のコード等）の作成**
 
-> **Run this 5 times to complete the full sprint (5 days).**
+> **5回実行するとスプリント期間（5日間）が完了します。**
 
 ---
 
-### Step 6. Sprint Review — `/sprint-review`
+### Step 6. スプリントレビュー — `/sprint-review`
 
 ```
 /sprint-review
 ```
 
-A review event to inspect the Increment created during the Sprint:
+スプリントで作成したインクリメントを検査するレビューイベントです。
 
-- Developers demo and explain the Increment
-- Customer agent (Sato) provides feedback (functionality, usability, business value)
-- Product Owner (Suzuki) makes accept/reject decisions for each PBI
-- Product Backlog is adjusted and velocity is recorded
+- 開発者がインクリメントのデモ・説明を実施
+- 顧客エージェント（佐藤）がフィードバック（機能性・ユーザビリティ・ビジネス価値）を提供
+- プロダクトオーナー（鈴木）が各PBIの受入判定を実施
+- プロダクトバックログを調整し、ベロシティを記録
 
 ---
 
-### Step 7. Sprint Retrospective — `/sprint-retrospective`
+### Step 7. スプリントレトロスペクティブ — `/sprint-retrospective`
 
 ```
 /sprint-retrospective
 ```
 
-A retrospective event to close out the Sprint:
+スプリントの振り返りイベントです。これをもってスプリントが終了します。
 
-- **Keep** — What went well / practices to continue
-- **Problem** — What went wrong / pain points
-- **Try** — Improvements to experiment with in the next Sprint
+- **Keep** — 良かったこと・維持すべきプラクティス
+- **Problem** — 問題だったこと・困難だった点
+- **Try** — 次のスプリントで試したい改善策
 
-Improvement actions are decided and the Definition of Done is reviewed.
-
----
-
-### Next Sprint
-
-Return to Step 1 and create `order002.md` if you have new requests, then repeat the same flow.  
-If there are no changes to the request, you can resume from Step 4 (Sprint Planning).
+改善アクションの決定、完成の定義の見直しも行われます。
 
 ---
 
-## Utility Skills
+### 次のスプリントへ
 
-These skills can be used at any time, independent of the sprint workflow.
+Step 1 に戻り、新しい依頼事項があれば `order002.md` を作成して同じ流れを繰り返します。  
+依頼事項に変更がなければ Step 4（スプリントプランニング）から再開できます。
 
-### Ask the Product Owner — `/ask-to-po-suzuki`
+---
+
+## ユーティリティスキル
+
+スプリントの流れとは独立して、いつでも利用できるスキルです。
+
+### プロダクトオーナーに質問する — `/ask-to-po-suzuki`
 
 ```
 /ask-to-po-suzuki
 ```
 
-Starts an interactive dialogue session with the Product Owner (Suzuki).  
-You can ask questions, request information from project files, and add or modify PBIs in the Product Backlog.
+プロダクトオーナー（鈴木）との対話型セッションを開始します。  
+ユーザの質問や要望を受けて、ファイルの調査回答やプロダクトバックログの PBI の追加・修正を行います。
 
-### Ad-hoc Sprint — `/adhoc-sprint`
+### アドホックスプリント — `/adhoc-sprint`
 
 ```
 /adhoc-sprint
 ```
 
-Handles ad-hoc / one-off requests from the user without going through the full Scrum cycle.  
-The Product Owner (Suzuki) receives the request and dispatches tasks to the appropriate sub-agents (developers, Scrum Master, reviewer), iterating with reviews from Kobayashi until the user's request is satisfied.
+通常のスクラムサイクルを回さず、ユーザからの突発的な単発リクエストに対応するためのスキルです。  
+プロダクトオーナー（鈴木）がリクエストを受け取り、適切なサブエージェント（開発者、スクラムマスター、レビュー担当）にタスクを割り振ります。レビュー担当（小林）の指摘がなくなるまで反復し、ユーザのリクエストに回答します。
 
-### User Review — `/human-review`
+### ユーザレビュー — `/human-review`
 
 ```
 /human-review
 ```
 
-Conducts a review session for the user (supervisor/stakeholder).  
-The Scrum Team explains progress — per sprint or across the entire product — by showing actual web screens, and collects feedback from the user.
+ユーザ（上長）向けのレビューセッションを実施します。  
+スプリント単位またはプロダクト全体について、実際の Web 画面を見せながらスクラムチームが説明し、ユーザからフィードバックをもらいます。
 
-### Full Security Audit — `/full-security-audit`
+### 包括的セキュリティ監査 — `/full-security-audit`
 
 ```
 /full-security-audit
 ```
 
-Performs a comprehensive security assessment of the entire project.  
-Runs six security reviews (source code, supply chain, configuration files, threat modeling, Scrum process, and cloud environment) in sequence, and produces a consolidated audit report under `security/reviewsXXX/`.
+プロジェクト全体のセキュリティ状態を一括で評価します。  
+6つのセキュリティレビュー（ソースコード、サプライチェーン、設定ファイル、脅威モデリング、スクラムプロセス、クラウド環境）を順序立てて実施し、統合された監査報告書を `security/reviewsXXX/` に作成します。
 
-### Mindset — `/my-mindset`
+### 心構え — `/my-mindset`
 
 ```
 /my-mindset
 ```
 
-A short skill that has the agent recite its working mindset — committing to perform the instructed task faithfully and thoroughly without cutting corners or letting custom agents do the work in its place. Useful as a reminder before starting important work.
+エージェントに作業の心構えを復唱させる短いスキルです。手を抜かず、カスタムエージェントに作業を代行させず、指示されたタスクを誠実に確実に実行することをコミットします。重要な作業の前のリマインダとして利用できます。
 
 ---
 
-## Batch Execution (Experimental)
+## 一括実行（参考）
 
 ```
 /execute-sprint
 ```
 
-This skill runs all of Steps 1–7 in a single execution.
-
-> **⚠️ Heads-up:** Because this is a long-running process, accuracy may degrade and the session could time out or terminate early. **Running each step individually is strongly recommended** until this mode is more stable.
+上記 Step 1〜7 をすべて一括で実行するスキルです。  
+ただし、処理が長時間になるため **精度の低下や途中終了エラーが発生する可能性** があります。  
+現時点では各ステップを個別に実行することを推奨します。
 
 ---
 
 ## GitHub Agentic Workflow
 
-This template can also be used with **GitHub Agentic Workflow (gh-aw)**.  
-For details, see the official site: **<https://github.github.com/gh-aw/>**
+本テンプレートは **GitHub Agentic Workflow (gh-aw)** でも利用できます。  
+詳細は公式サイトを参照してください: **<https://github.github.com/gh-aw/>**
 
 > [!CAUTION]
-> GitHub Agentic Workflow is a very new service. **You must verify behavior with the latest version before use.** Specifications and features may change without notice.
+> GitHub Agentic Workflow は非常に新しいサービスです。**必ず最新バージョンでの動作検証を行ってから利用してください。** 仕様や機能が予告なく変更される可能性があります。
 
-### Setup
+### セットアップ
 
-#### 1. Install the CLI extension
+#### 1. CLI 拡張機能のインストール
 
-If you haven't installed it yet, run:
+未インストールの場合は以下を実行します:
 
 ```bash
 gh extension install github/gh-aw
 ```
 
-#### 2. Compile before use
+#### 2. コンパイルしてから使用する
 
-Always compile before running:
+実行前に必ずコンパイルを行ってください:
 
 ```bash
 gh aw compile
 ```
 
-#### 3. Required tokens
+#### 3. 必要なトークン
 
-The following two environment variables must be set:
+以下の2つの環境変数を設定する必要があります:
 
-| Token | Description |
+| トークン | 説明 |
 |---|---|
-| `GH_AW_GITHUB_TOKEN` | GitHub personal access token |
-| `COPILOT_GITHUB_TOKEN` | Copilot GitHub token |
+| `GH_AW_GITHUB_TOKEN` | GitHub パーソナルアクセストークン |
+| `COPILOT_GITHUB_TOKEN` | Copilot GitHub トークン |
 
-Both tokens require **Read and Write access** to:
+両方のトークンに以下への **Read and Write access** が必要です:
 - **Code**
 - **Pull requests**
 - **Workflows**
 
-#### 4. Repository settings
+#### 4. リポジトリの設定
 
-The following settings must be configured on your repository:
+リポジトリに以下の設定が必要です:
 
-- **Copilot Coding Agent + Agentic Workflows**: Enabled
-- **Actions permissions**: Allow the following actions:
+- **Copilot Coding Agent + Agentic Workflows**: 有効化
+- **Actions permissions**: 以下のアクションを許可:
   - `github/gh-aw-actions`
   - `microsoft/apm-action`
   - `actions/*`
-- **Workflow permissions**: Read and Write permissions + Allow GitHub Actions to create pull requests
+- **Workflow permissions**: Read/Write 権限 + GitHub Actions による PR 作成を許可
 
 ---
 
-## Rules
+## ルール
 
-- All artifacts follow the **Scrum Guide 2020**
-- Node.js package manager: **pnpm**
-- Python projects use a virtual environment (`.venv`)
-- CSV files are UTF-8 encoded; column structures must not be modified
+- すべての成果物は **日本語** で記述されます
+- **スクラムガイド2020** に準拠して運用されます
+- Node.js のパッケージマネージャーは **pnpm** を使用します
+- Python の場合は仮想環境 (`.venv`) を使用します
+- CSV ファイルは UTF-8（BOM付き対応）で、列構造は変更しません
 
-### ⚠️ AI Model Notice
+### ⚠️ AIモデルに関する注意
 
-The prompts and skill definitions in this template are currently tuned for **Claude Opus 4.6** and **GPT-5.4**.  
-If you are using a different AI model, you may need to adjust the prompts or skill files to suit your model's characteristics. Results may vary depending on the model used.  
-Also, since this template heavily uses AI agents and consumes a large number of tokens, please check the billing model and costs for the model you are using and switch to a different model if necessary.
-
-### ⚠️ Language Notice — Currently Japanese Only
-
-This template's prompts, skill definitions, and all generated artifacts are currently **written in Japanese**. English speakers can still use the template, but the output will be in Japanese by default.
-
-**To switch to English**, choose one of the following approaches:
-
-1. **Quick fix** — Change the language rule in `.github/copilot-instructions.md` from Japanese to English. This will cause the AI agents to respond in English, though some template text may remain in Japanese.
-2. **Full conversion** — Translate the entire project (Markdown files, CSV files, skill definitions, etc.) into English using GitHub Copilot or another AI-assisted tool.
-
-> **Want a first-class English version?**  
-> If there's enough demand, we plan to publish a dedicated English edition of this template. Please [open an issue](../../issues) or drop us a note — we'd love to hear from you!
-
----
-
+本テンプレートのプロンプトおよびスキル定義は、現在 **Claude Opus 4.6** および **GPT-5.4** を前提に調整されています。  
+異なるAIモデルを使用する場合は、モデルの特性に合わせてプロンプトやスキルファイルの調整が必要になることがあります。使用するモデルによって結果が異なる場合があります。  
+また、本テンプレートはAIエージェントを多用し大量のトークンを消費するため、利用するモデルの課金体系・コストを確認のうえ、必要に応じて別のモデルへの変更を検討してください。
