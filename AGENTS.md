@@ -47,7 +47,7 @@ Copilot / Claude Code はスクラムの各ロールを**サブエージェン�
 | デイリー＋開発 | `.claude/skills/one-day-in-scrum/SKILL.md` | デイリースクラム＋インクリメント作成（1日分） |
 | レビュー | `.claude/skills/sprint-review/SKILL.md` | 検査・受入判定・仕様同期 |
 | レトロ | `.claude/skills/sprint-retrospective/SKILL.md` | Keep/Problem/Try |
-| その他 | `.claude/skills/{ask-to-po-suzuki,adhoc-sprint,human-review,execute-sprint,my-mindset}/SKILL.md` | ユーティリティ |
+| その他 | `.claude/skills/{ask-to-po-shuri,adhoc-sprint,human-review,execute-sprint,my-mindset}/SKILL.md` | ユーティリティ |
 | セキュリティ監査 | `.claude/skills/{full-security-audit,source-code-security-review,supply-chain-security-review,config-security-review,scrum-security-review,azure-cloud-security-review,threat-modeling}/SKILL.md` | 監査系 |
 
 ## 仕様書駆動開発

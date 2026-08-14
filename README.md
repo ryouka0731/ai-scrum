@@ -161,10 +161,10 @@ If there are no changes to the request, you can resume from Step 4 (Sprint Plann
 
 These skills can be used at any time, independent of the sprint workflow.
 
-### Ask the Product Owner — `/ask-to-po-suzuki`
+### Ask the Product Owner — `/ask-to-po-shuri`
 
 ```
-/ask-to-po-suzuki
+/ask-to-po-shuri
 ```
 
 Starts an interactive dialogue session with the Product Owner (Shuri).  

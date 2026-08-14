@@ -54,7 +54,7 @@
 | `/one-day-in-scrum` | デイリースクラム＋インクリメント作成（1日分） |
 | `/sprint-review` | インクリメント検査・受入判定・仕様同期 |
 | `/sprint-retrospective` | Keep/Problem/Try |
-| `/ask-to-po-suzuki` `/adhoc-sprint` `/human-review` `/full-security-audit` `/my-mindset` 他 | ユーティリティ／セキュリティ監査 |
+| `/ask-to-po-shuri` `/adhoc-sprint` `/human-review` `/full-security-audit` `/my-mindset` 他 | ユーティリティ／セキュリティ監査 |
 
 ## プロジェクト構成
 
