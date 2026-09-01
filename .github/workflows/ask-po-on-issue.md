@@ -5,9 +5,10 @@ name: Issueコメントでシュリに相談
 # プロダクトオーナー シュリが同じ Issue に返信する。
 # 設計: docs/integrations/github-projects.md（フェーズ2）
 #
-# 注意: このファイルは gh-aw のソースです。実行するには .lock.yml の生成が必要です。
-#   gh extension install githubnext/gh-aw
-#   gh aw compile
+# 注意: このファイルは gh-aw のソースです。編集したら .lock.yml を再生成すること。
+# リポジトリの他ワークフローに合わせて v0.67.4 を使う（actions-lock.json で承認済み）。
+#   gh extension install githubnext/gh-aw --pin v0.67.4
+#   gh aw compile ask-po-on-issue
 
 on:
   slash_command:
