@@ -14,9 +14,11 @@ on:
   slash_command:
     name: ask-po
 
+# copilot エンジンは COPILOT_GITHUB_TOKEN（fine-grained PAT + Copilot Requests 権限）を
+# 要求するが、このリポジトリには ANTHROPIC_API_KEY が既にある。claude エンジンなら
+# 追加のトークン発行なしで動作するため、こちらを使う。
 engine:
-  id: copilot
-  model: claude-opus-4.6
+  id: claude
 
 timeout-minutes: 20
 
