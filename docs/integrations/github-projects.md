@@ -98,6 +98,10 @@ gh secret   set PROJECT_SYNC_TOKEN   --body <PAT>
 Personal Access Token をシークレット `PROJECT_SYNC_TOKEN` に登録します。
 **未登録の場合はエラーにせず Issue のみ同期します。**
 
+こちらは `gh auth token` の OAuth トークンでも動作します（同期スクリプトは `gh` CLI 経由のため）。
+ただしその場合 `workflow` や `admin:public_key` など不要なスコープまで CI に渡ることになるので、
+**`repo` + `project` だけを持つ専用トークンを使うことを推奨します。**
+
 ### 5. ビューを作る
 
 Project 画面で以下を追加すると、カンバンとガントになります。
@@ -123,6 +127,22 @@ Issue に `/ask-po <相談内容>` とコメントすると、プロダクトオ
 
 **実行にはシークレット `COPILOT_GITHUB_TOKEN` が必要です。** これは本ワークフロー固有ではなく、
 `run-*.md` を含む gh-aw ワークフロー全体に共通の前提です。未設定だと secret 検証ステップで停止します。
+
+**必ず fine-grained PAT（`github_pat_...`）を使ってください。** gh-aw は OAuth トークン（`gho_`、
+`gh auth token` で得られるもの）を明示的に拒否します。実測したエラー:
+
+```
+Error: COPILOT_GITHUB_TOKEN is an OAuth token (gho_...)
+OAuth tokens are not supported for GitHub Copilot.
+```
+
+さらに、**トークン形式が正しいだけでは足りません。** 以下を満たさないと形式チェックは通っても
+推論時に失敗します（[gh-aw の認証リファレンス](https://github.github.com/gh-aw/reference/auth/#copilot_github_token)）。
+
+1. https://github.com/settings/personal-access-tokens/new で fine-grained PAT を作成する
+2. **Resource owner を Organization ではなく自分のユーザーアカウントにする**
+3. **Account permissions → Copilot Requests を Read にする**
+4. `gh secret set COPILOT_GITHUB_TOKEN --repo <owner>/<repo>` で登録する
 
 `.md` を編集したら `.lock.yml` を再生成してコミットしてください。**gh-aw は v0.67.0 に固定します。**
 リポジトリの他14ワークフローがこの版でコンパイルされており、新しい版を使うと
