@@ -71,6 +71,25 @@ if ! gh project list --owner "$OWNER" --limit 1 >/dev/null 2>&1; then
   exit 1
 fi
 
+# gh api graphql --paginate は改行を挟まず JSON を連結出力するため、
+# 行単位では解析できない。raw_decode で順に切り出すパーサを両方の照合で共有する。
+read -r -d '' PY_OBJECTS <<'PY' || true
+import json, sys
+
+def objects(stream):
+    # 連結された JSON を先頭から順に切り出す
+    dec = json.JSONDecoder()
+    buf = stream.read()
+    i = 0
+    while i < len(buf):
+        while i < len(buf) and buf[i].isspace():
+            i += 1
+        if i >= len(buf):
+            break
+        obj, i = dec.raw_decode(buf, i)
+        yield obj
+PY
+
 # ---------------------------------------------------------------- Project 本体
 # --number 省略時に無条件で作成すると、再実行のたびに同名ボードが増えてしまう。
 # 同じ title の Project が既にあれば再利用する。
@@ -85,30 +104,15 @@ if [[ -z "$NUMBER" ]]; then
           }
         }
       }
-    }' -f login="$OWNER" 2>/dev/null | python3 -c '
-import json, sys
-
-def objects(stream):
-    """gh api graphql --paginate は改行なしで JSON を連結出力するため順に切り出す。"""
-    dec = json.JSONDecoder()
-    buf = stream.read()
-    i = 0
-    while i < len(buf):
-        while i < len(buf) and buf[i].isspace():
-            i += 1
-        if i >= len(buf):
-            break
-        obj, i = dec.raw_decode(buf, i)
-        yield obj
-
+    }' -f login="$OWNER" 2>/dev/null | python3 -c "$PY_OBJECTS
 title = sys.argv[1]
 for obj in objects(sys.stdin):
-    owner = (obj.get("data") or {}).get("repositoryOwner") or {}
-    for n in ((owner.get("projectsV2") or {}).get("nodes") or []):
-        if n.get("title") == title:
-            print(n.get("number", ""))
+    owner = (obj.get('data') or {}).get('repositoryOwner') or {}
+    for n in ((owner.get('projectsV2') or {}).get('nodes') or []):
+        if n.get('title') == title:
+            print(n.get('number', ''))
             sys.exit(0)
-' "$TITLE")"
+" "$TITLE")"
 fi
 
 if [[ -z "$NUMBER" ]]; then
@@ -222,30 +226,15 @@ else
           pageInfo { hasNextPage endCursor }
         }
       }
-    }' -f owner="${REPO%%/*}" -f name="${REPO##*/}" 2>/dev/null | python3 -c '
-import json, sys
-
-def objects(stream):
-    """gh api graphql --paginate は改行なしで JSON を連結出力するため順に切り出す。"""
-    dec = json.JSONDecoder()
-    buf = stream.read()
-    i = 0
-    while i < len(buf):
-        while i < len(buf) and buf[i].isspace():
-            i += 1
-        if i >= len(buf):
-            break
-        obj, i = dec.raw_decode(buf, i)
-        yield obj
-
+    }' -f owner="${REPO%%/*}" -f name="${REPO##*/}" 2>/dev/null | python3 -c "$PY_OBJECTS
 target = sys.argv[1]
 for obj in objects(sys.stdin):
-    repo = (obj.get("data") or {}).get("repository") or {}
-    for n in ((repo.get("projectsV2") or {}).get("nodes") or []):
-        if n.get("id") == target:
-            print("linked")
+    repo = (obj.get('data') or {}).get('repository') or {}
+    for n in ((repo.get('projectsV2') or {}).get('nodes') or []):
+        if n.get('id') == target:
+            print('linked')
             sys.exit(0)
-' "$PROJECT_ID" || true)"
+" "$PROJECT_ID" || true)"
   if [[ -n "$LINKED" ]]; then
     echo "==> Project #${NUMBER} は既に ${REPO} にリンク済みです（スキップ）"
   else
