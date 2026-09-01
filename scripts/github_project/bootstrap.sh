@@ -26,6 +26,7 @@ TITLE="AI Scrum Board"
 NUMBER=""
 REPO=""
 NO_LINK=""
+LINK_OK=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -237,6 +238,7 @@ for obj in objects(sys.stdin):
 " "$PROJECT_ID" || true)"
   if [[ -n "$LINKED" ]]; then
     echo "==> Project #${NUMBER} は既に ${REPO} にリンク済みです（スキップ）"
+    LINK_OK=1
   else
     echo "==> Project #${NUMBER} を ${REPO} にリンクします"
     # リンクにはリポジトリの書き込み権限が必要。失敗しても他の設定は完了しているため、
@@ -248,6 +250,7 @@ for obj in objects(sys.stdin):
         }
       }' -F projectId="$PROJECT_ID" -F repositoryId="$REPO_ID" >/dev/null 2>&1; then
       echo "    リンクしました: https://github.com/${REPO}/projects"
+      LINK_OK=1
     else
       echo "    ! ${REPO} へのリンクに失敗しました（リポジトリの書き込み権限が必要です）" >&2
       echo "      対象リポジトリを変えるなら --repo <owner/name>、リンク不要なら --no-link を指定してください" >&2
@@ -255,7 +258,9 @@ for obj in objects(sys.stdin):
   fi
 fi
 
-if [[ -n "$REPO" ]]; then
+# --no-link 指定時やリンク失敗時に URL を出すと、実際には Projects タブに
+# 表示されないのに表示されるかのように誤解させるため、成否フラグで判定する。
+if [[ -n "${LINK_OK:-}" ]]; then
   REPO_TAB="https://github.com/${REPO}/projects"
 else
   REPO_TAB="（リポジトリ未リンク）"

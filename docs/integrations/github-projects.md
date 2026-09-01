@@ -136,7 +136,13 @@ Error: COPILOT_GITHUB_TOKEN is an OAuth token (gho_...)
 OAuth tokens are not supported for GitHub Copilot.
 ```
 
-作成先: https://github.com/settings/personal-access-tokens/new
+さらに、**トークン形式が正しいだけでは足りません。** 以下を満たさないと形式チェックは通っても
+推論時に失敗します（[gh-aw の認証リファレンス](https://github.github.com/gh-aw/reference/auth/#copilot_github_token)）。
+
+1. https://github.com/settings/personal-access-tokens/new で fine-grained PAT を作成する
+2. **Resource owner を Organization ではなく自分のユーザーアカウントにする**
+3. **Account permissions → Copilot Requests を Read にする**
+4. `gh secret set COPILOT_GITHUB_TOKEN --repo <owner>/<repo>` で登録する
 
 `.md` を編集したら `.lock.yml` を再生成してコミットしてください。**gh-aw は v0.67.0 に固定します。**
 リポジトリの他14ワークフローがこの版でコンパイルされており、新しい版を使うと
