@@ -116,17 +116,22 @@ Project 画面で以下を追加すると、カンバンとガントになりま
 Issue に `/ask-po <相談内容>` とコメントすると、プロダクトオーナー シュリが同じ Issue に返信します。
 
 ソース: [`.github/workflows/ask-po-on-issue.md`](../../.github/workflows/ask-po-on-issue.md)
-
-**このワークフローはまだ実行可能な状態ではありません。** 他の gh-aw ワークフローと同様に
-`.lock.yml` の生成が必要です。
-
-```bash
-gh extension install githubnext/gh-aw
-gh aw compile
-```
+コンパイル済み: [`.github/workflows/ask-po-on-issue.lock.yml`](../../.github/workflows/ask-po-on-issue.lock.yml)
 
 シュリはこの場では `scrum/` を書き換えず、必要な変更を提案するだけです（スクラムイベント外での
 成果物変更を防ぐため）。
+
+**実行にはシークレット `COPILOT_GITHUB_TOKEN` が必要です。** これは本ワークフロー固有ではなく、
+`run-*.md` を含む gh-aw ワークフロー全体に共通の前提です。未設定だと secret 検証ステップで停止します。
+
+`.md` を編集したら `.lock.yml` を再生成してコミットしてください。**gh-aw は v0.67.0 に固定します。**
+リポジトリの他14ワークフローがこの版でコンパイルされており、新しい版を使うと
+`github/gh-aw-actions/setup` のピンが上がって揃わなくなります。
+
+```bash
+gh extension install githubnext/gh-aw --pin v0.67.0
+gh aw compile ask-po-on-issue
+```
 
 ## フェーズ3（未実装）: ボードからファイルへの逆流
 
