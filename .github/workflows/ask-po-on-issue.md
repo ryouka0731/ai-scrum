@@ -6,8 +6,8 @@ name: Issueコメントでシュリに相談
 # 設計: docs/integrations/github-projects.md（フェーズ2）
 #
 # 注意: このファイルは gh-aw のソースです。編集したら .lock.yml を再生成すること。
-# リポジトリの他ワークフローに合わせて v0.67.4 を使う（actions-lock.json で承認済み）。
-#   gh extension install githubnext/gh-aw --pin v0.67.4
+# 他14ワークフローと同じ v0.67.0 で固定する（setup の SHA がずれるため上げない）。
+#   gh extension install githubnext/gh-aw --pin v0.67.0
 #   gh aw compile ask-po-on-issue
 
 on:

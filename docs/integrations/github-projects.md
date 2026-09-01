@@ -124,12 +124,12 @@ Issue に `/ask-po <相談内容>` とコメントすると、プロダクトオ
 **実行にはシークレット `COPILOT_GITHUB_TOKEN` が必要です。** これは本ワークフロー固有ではなく、
 `run-*.md` を含む gh-aw ワークフロー全体に共通の前提です。未設定だと secret 検証ステップで停止します。
 
-`.md` を編集したら `.lock.yml` を再生成してコミットしてください。**リポジトリの他のワークフローに
-合わせて gh-aw v0.67.4 を使います**（`.github/aw/actions-lock.json` で承認済みのバージョン）。
-新しい版でコンパイルすると `github/gh-aw-actions/setup` のピンが上がり、他ワークフローとずれます。
+`.md` を編集したら `.lock.yml` を再生成してコミットしてください。**gh-aw は v0.67.0 に固定します。**
+リポジトリの他14ワークフローがこの版でコンパイルされており、新しい版を使うと
+`github/gh-aw-actions/setup` のピンが上がって揃わなくなります。
 
 ```bash
-gh extension install githubnext/gh-aw --pin v0.67.4
+gh extension install githubnext/gh-aw --pin v0.67.0
 gh aw compile ask-po-on-issue
 ```
 
