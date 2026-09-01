@@ -1,0 +1,81 @@
+name: GitHub Project 同期
+
+# scrum/ のバックログ（真実の源泉）を GitHub Issues / Projects V2 に一方向同期する。
+# 設計: docs/integrations/github-projects.md
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "scrum/product_backlog.csv"
+      - "scrum/product_backlog_done.csv"
+      - "scrum/velocity.csv"
+      - "scripts/github_project/**"
+      - ".github/workflows/sync-github-project.yml"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "変更せず実行内容だけ表示する"
+        type: boolean
+        default: false
+  workflow_call:
+    inputs:
+      dry_run:
+        description: "変更せず実行内容だけ表示する"
+        type: boolean
+        required: false
+        default: false
+    secrets:
+      PROJECT_SYNC_TOKEN:
+        description: "Projects V2 に書き込むための repo + project スコープの PAT。未指定なら Issue のみ同期する"
+        required: false
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: sync-github-project
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: リポジトリを取得
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: 同期を実行
+        env:
+          # Projects V2 の書き込みには GITHUB_TOKEN では不足するため、
+          # repo + project スコープの PAT を PROJECT_SYNC_TOKEN に登録する。
+          # 未登録の場合は Issue のみ同期する（Project 同期はスキップ）。
+          PROJECT_TOKEN: ${{ secrets.PROJECT_SYNC_TOKEN }}
+          FALLBACK_TOKEN: ${{ github.token }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          PROJECT_NUMBER: ${{ vars.SCRUM_PROJECT_NUMBER }}
+          DRY_RUN: ${{ inputs.dry_run }}
+        run: |
+          set -euo pipefail
+
+          args=()
+
+          if [[ -n "${PROJECT_TOKEN}" ]]; then
+            export GH_TOKEN="${PROJECT_TOKEN}"
+            if [[ "${PROJECT_NUMBER}" =~ ^[0-9]+$ ]]; then
+              args+=(--project-number "${PROJECT_NUMBER}")
+            else
+              echo "::warning::リポジトリ変数 SCRUM_PROJECT_NUMBER が未設定または数値ではないため、Issue のみ同期します"
+              args+=(--issues-only)
+            fi
+          else
+            export GH_TOKEN="${FALLBACK_TOKEN}"
+            echo "::warning::シークレット PROJECT_SYNC_TOKEN が未設定のため、Issue のみ同期します"
+            args+=(--issues-only)
+          fi
+
+          if [[ "${DRY_RUN}" == "true" ]]; then
+            args+=(--dry-run)
+          fi
+
+          python3 scripts/github_project/sync_backlog.py "${args[@]}"
