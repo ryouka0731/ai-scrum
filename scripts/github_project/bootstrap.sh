@@ -14,18 +14,27 @@
 # 使い方:
 #   scripts/github_project/bootstrap.sh --owner <owner> [--title "AI Scrum Board"]
 #   scripts/github_project/bootstrap.sh --owner <owner> --number 3   # 既存 Project を設定
+#
+# Projects V2 はユーザー / Organization 所有のため、リポジトリの Projects タブに
+# 出すには明示的なリンクが必要。既定では現在のリポジトリに自動でリンクする。
+#   --repo <owner/name>   リンク先のリポジトリを指定する
+#   --no-link             リンクしない
 set -euo pipefail
 
 OWNER=""
 TITLE="AI Scrum Board"
 NUMBER=""
+REPO=""
+NO_LINK=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --owner)  OWNER="${2:-}"; shift 2 ;;
-    --title)  TITLE="${2:-}"; shift 2 ;;
-    --number) NUMBER="${2:-}"; shift 2 ;;
-    -h|--help) sed -n '2,20p' "$0"; exit 0 ;;
+    --owner)   OWNER="${2:-}"; shift 2 ;;
+    --title)   TITLE="${2:-}"; shift 2 ;;
+    --number)  NUMBER="${2:-}"; shift 2 ;;
+    --repo)    REPO="${2:-}"; shift 2 ;;
+    --no-link) NO_LINK="1"; shift ;;
+    -h|--help) sed -n '2,22p' "$0"; exit 0 ;;
     *) echo "不明な引数: $1" >&2; exit 2 ;;
   esac
 done
@@ -35,6 +44,20 @@ if [[ -z "$OWNER" ]]; then
 fi
 if [[ ! "$OWNER" =~ ^[A-Za-z0-9][A-Za-z0-9-]{0,38}$ ]]; then
   echo "owner の形式が不正です: ${OWNER}" >&2
+  exit 2
+fi
+if [[ -z "$NO_LINK" && -z "$REPO" ]]; then
+  # gh repo view はフォークだと親リポジトリを返すため、origin リモートから解決する。
+  ORIGIN_URL="$(git remote get-url origin 2>/dev/null || true)"
+  # bash の =~ は ERE なので遅延量指定子 (+?) は使えない。貪欲に取って .git を後で剥がす。
+  if [[ "$ORIGIN_URL" =~ github\.com[:/]([^/]+)/([^/]+)$ ]]; then
+    REPO="${BASH_REMATCH[1]}/${BASH_REMATCH[2]%.git}"
+  else
+    REPO="$(gh repo view --json nameWithOwner -q .nameWithOwner 2>/dev/null || true)"
+  fi
+fi
+if [[ -n "$REPO" && ! "$REPO" =~ ^[A-Za-z0-9][A-Za-z0-9-]{0,38}/[A-Za-z0-9._-]{1,100}$ ]]; then
+  echo "repo の形式が不正です（owner/name で指定してください）: ${REPO}" >&2
   exit 2
 fi
 if [[ -n "$NUMBER" && ! "$NUMBER" =~ ^[0-9]+$ ]]; then
@@ -156,6 +179,41 @@ create_field "Size"        "NUMBER"
 create_field "Sprint"      "TEXT"
 create_field "Start date"  "DATE"
 create_field "Target date" "DATE"
+
+# ------------------------------------------------------- リポジトリへのリンク
+# Projects V2 はユーザー / Organization 所有のため、リポジトリの Projects タブに
+# 出すには明示的なリンクが必要になる。
+if [[ -n "$NO_LINK" ]]; then
+  echo "==> リポジトリへのリンクをスキップします (--no-link)"
+elif [[ -z "$REPO" ]]; then
+  echo "==> リポジトリを特定できないためリンクをスキップします（--repo で指定できます）"
+else
+  LINKED="$(gh api graphql -f query='
+    query($owner: String!, $name: String!) {
+      repository(owner: $owner, name: $name) {
+        projectsV2(first: 100) { nodes { number } }
+      }
+    }' -f owner="${REPO%%/*}" -f name="${REPO##*/}" \
+    --jq '[.data.repository.projectsV2.nodes[].number] | index('"$NUMBER"')' 2>/dev/null || true)"
+  if [[ -n "$LINKED" && "$LINKED" != "null" ]]; then
+    echo "==> Project #${NUMBER} は既に ${REPO} にリンク済みです（スキップ）"
+  else
+    echo "==> Project #${NUMBER} を ${REPO} にリンクします"
+    # リンクにはリポジトリの書き込み権限が必要。失敗しても他の設定は完了しているため、
+    # 手動用のコマンドを案内して続行する。
+    if REPO_ID="$(gh api "repos/${REPO}" --jq .node_id 2>/dev/null)" && gh api graphql -f query='
+      mutation($projectId: ID!, $repositoryId: ID!) {
+        linkProjectV2ToRepository(input: {projectId: $projectId, repositoryId: $repositoryId}) {
+          repository { name }
+        }
+      }' -F projectId="$PROJECT_ID" -F repositoryId="$REPO_ID" >/dev/null 2>&1; then
+      echo "    リンクしました: https://github.com/${REPO}/projects"
+    else
+      echo "    ! ${REPO} へのリンクに失敗しました（リポジトリの書き込み権限が必要です）" >&2
+      echo "      対象リポジトリを変えるなら --repo <owner/name>、リンク不要なら --no-link を指定してください" >&2
+    fi
+  fi
+fi
 
 cat <<MSG
 

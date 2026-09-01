@@ -61,6 +61,18 @@ Status フィールドの選択肢をスクラム用（New / Ready / In Progress
 Priority / Size / Sprint / Start date / Target date を作成します。冪等なので再実行できます
 （`--number` を省略した場合も、同じ title の Project が既にあれば作成せず再利用します）。
 
+**Projects V2 はユーザー / Organization が所有します。** リポジトリ配下には作成できないため、
+`https://<owner>/<repo>/projects` に表示するにはリポジトリへのリンクが必要です。bootstrap は
+`origin` リモートから対象リポジトリを判定して自動でリンクします。
+
+```bash
+scripts/github_project/bootstrap.sh --owner <owner> --repo <owner>/<name>  # リンク先を明示する
+scripts/github_project/bootstrap.sh --owner <owner> --no-link              # リンクしない
+```
+
+リンクにはリポジトリの書き込み権限が必要です。失敗してもフィールド設定は完了しているため、
+警告を出して続行します（フォークで作業していて `origin` が自分のフォークでない場合など）。
+
 > 既存 Project に対して実行すると Status の選択肢が置き換わります。既存アイテムの Status が
 > 消える可能性があるため、新規 Project での利用を推奨します。
 
