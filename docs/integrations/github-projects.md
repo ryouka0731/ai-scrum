@@ -87,6 +87,12 @@ Project 画面で以下を追加すると、カンバンとガントになりま
 - **Board** ビュー: Group by = `Status`
 - **Roadmap** ビュー: Date fields = `Start date` / `Target date`、Zoom = Month
 
+## 既知の制限
+
+- **CSV から PBI 行を削除しても Issue は残る。** 同期は作成・更新・クローズ・再オープンのみを行い、削除は行わない。行を消すのではなく `status` を完了に倒せば Issue はクローズされる。不要な Issue は手動で閉じるか削除する。
+- **同期は CSV → GitHub の一方向のみ。** GitHub 側で Issue のタイトルや本文の自動生成ブロック（`<!-- pbi-sync:begin -->` 〜 `<!-- pbi-sync:end -->`）を編集しても、次回同期で CSV の内容に戻る。マーカーの外に書いたコメントは保持される。
+- **ひな形のままの行は同期対象外。** 全角括弧のタイトル、`YYYY-MM-DD` の日付、`Critical/High/Medium/Low` のような複合値を持つ行はプレースホルダとみなしてスキップする。
+
 ## フェーズ2: Issue コメントでのエージェント対話
 
 Issue に `/ask-po <相談内容>` とコメントすると、プロダクトオーナー シュリが同じ Issue に返信します。

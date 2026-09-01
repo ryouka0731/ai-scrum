@@ -63,20 +63,40 @@ PROJECT_URL="$(printf '%s' "$PROJECT_JSON" | python3 -c 'import json,sys; print(
 
 FIELDS_JSON="$(gh project field-list "$NUMBER" --owner "$OWNER" --limit 100 --format json)"
 
+# gh のバージョンによって field-list の出力が [..] と {"fields": [..]} で異なるため両対応する
 field_id() {
   printf '%s' "$FIELDS_JSON" | python3 -c '
 import json, sys
+data = json.load(sys.stdin)
+fields = data.get("fields", []) if isinstance(data, dict) else data
 name = sys.argv[1]
-for f in json.load(sys.stdin).get("fields", []):
+for f in fields:
     if f.get("name") == name:
         print(f.get("id", ""))
         break
 ' "$1"
 }
 
+# Status の選択肢名を改行区切りで出力する
+status_option_names() {
+  printf '%s' "$FIELDS_JSON" | python3 -c '
+import json, sys
+data = json.load(sys.stdin)
+fields = data.get("fields", []) if isinstance(data, dict) else data
+for f in fields:
+    if f.get("name") == "Status":
+        for o in f.get("options", []):
+            print(o.get("name", ""))
+        break
+'
+}
+
 # ------------------------------------------------------- Status の選択肢を差し替え
 STATUS_ID="$(field_id "Status")"
-if [[ -n "$STATUS_ID" ]]; then
+WANT_STATUS=$'New\nReady\nIn Progress\nReview\nDone'
+if [[ -n "$STATUS_ID" && "$(status_option_names)" == "$WANT_STATUS" ]]; then
+  echo "==> Status フィールドの選択肢は設定済みです（スキップ）"
+elif [[ -n "$STATUS_ID" ]]; then
   echo "==> Status フィールドの選択肢をスクラム用に設定します"
   gh api graphql -f query='
     mutation($fieldId: ID!) {

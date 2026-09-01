@@ -66,6 +66,8 @@ def run_gh(args, dry_run=False, mutating=False, check=True):
             shown.append(part if len(part) <= 60 else part[:57] + "...")
         print("  [dry-run] " + " ".join(shown))
         return ""
+    # shell=False かつ引数はリストで渡すため、値にメタ文字が含まれても
+    # シェル解釈されない（コマンドインジェクションは成立しない）。
     proc = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     out = proc.stdout.decode("utf-8", "replace")
     err = proc.stderr.decode("utf-8", "replace").strip()
@@ -229,19 +231,32 @@ def merge_body(existing, block):
 # --------------------------------------------------------------------------
 
 def fetch_pbi_issues(repo):
-    """[PBI-XXX] で始まる Issue を取得して id -> issue の辞書にする。"""
+    """[PBI-XXX] で始まる Issue を取得して id -> issue の辞書にする。
+
+    件数上限で打ち切ると既存 Issue を新規と誤認して重複作成してしまうため、
+    REST を --paginate で全ページ走査する。
+    """
     try:
-        data = run_gh_json([
-            "issue", "list", "--repo", repo, "--state", "all", "--limit", "500",
-            "--json", "number,title,body,state,url,labels",
-        ], default=[]) or []
+        out = run_gh([
+            "api", "--paginate", "-X", "GET", "repos/%s/issues" % repo,
+            "-f", "state=all", "-f", "per_page=100",
+            "--jq", '.[] | select(has("pull_request") | not)'
+                    ' | {number, title, body, state, url: .html_url}',
+        ])
     except GhError as exc:
-        if "disabled issues" in str(exc):
+        msg = str(exc)
+        if "disabled issues" in msg or "Issues are disabled" in msg:
             raise GhError(
                 "リポジトリ %s で Issue が無効になっています。次のいずれかで有効化してください:\n"
                 "  gh repo edit %s --enable-issues\n"
                 "  または GitHub の Settings > General > Features > Issues" % (repo, repo))
         raise
+    # --paginate + --jq はページごとの結果を 1 行 1 オブジェクトで連結して出力する
+    data = [json.loads(line) for line in out.splitlines() if line.strip()]
+    for issue in data:
+        # REST は state が小文字、body が null。gh issue list の形式に揃える
+        issue["state"] = (issue.get("state") or "").upper()
+        issue["body"] = issue.get("body") or ""
     issues = {}
     for issue in data:
         m = PBI_TITLE_RE.match(issue.get("title", ""))
@@ -258,15 +273,29 @@ def fetch_pbi_issues(repo):
 
 
 def ensure_label(repo, dry_run):
+    """pbi ラベルを用意する。用意できたかどうかを返す。
+
+    作成失敗を握りつぶしたまま Issue 作成で --label を渡すと、
+    ラベル未存在時に同期全体が落ちるため、可否を呼び出し側に返す。
+    """
     run_gh(["label", "create", PBI_LABEL, "--repo", repo,
             "--color", "1D76DB", "--description", "プロダクトバックログアイテム（自動同期）"],
            dry_run=dry_run, mutating=True, check=False)
+    if dry_run:
+        return True
+    names = run_gh_json(["label", "list", "--repo", repo,
+                         "--json", "name", "--limit", "200"], default=[]) or []
+    available = any(x.get("name") == PBI_LABEL for x in names)
+    if not available:
+        print("  ! %s ラベルを用意できませんでした。ラベル無しで Issue を作成します"
+              % PBI_LABEL, file=sys.stderr)
+    return available
 
 
 def sync_issues(repo, rows, sprint_dates, dry_run):
     """CSV の各 PBI について Issue を作成／更新し、id -> issue url/number を返す。"""
     existing = fetch_pbi_issues(repo)
-    ensure_label(repo, dry_run)
+    label_args = ["--label", PBI_LABEL] if ensure_label(repo, dry_run) else []
     result = {}
     created = updated = closed = reopened = unchanged = 0
 
@@ -280,7 +309,7 @@ def sync_issues(repo, rows, sprint_dates, dry_run):
         if issue is None:
             print("  + Issue 作成: %s" % title)
             out = run_gh(["issue", "create", "--repo", repo, "--title", title,
-                          "--body", block + "\n", "--label", PBI_LABEL],
+                          "--body", block + "\n"] + label_args,
                          dry_run=dry_run, mutating=True)
             created += 1
             url = out.strip().splitlines()[-1] if out.strip() else "(dry-run)"
