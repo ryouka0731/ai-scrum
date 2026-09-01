@@ -28,6 +28,11 @@
 | Start date | date | `velocity.csv` の該当スプリントの `sprint_start` |
 | Target date | date | `velocity.csv` の該当スプリントの `sprint_end` |
 
+**ロードマップ（ガント）にバーを出すには `velocity.csv` に実際の日付が必要です。** `sprint_start` /
+`sprint_end` が `YYYY-MM-DD` のひな形のままだと Start date / Target date は空のままになります。
+`product_backlog.csv` の `sprint` 列と `velocity.csv` の `sprint` 列は表記が揺れていても照合されます
+（`Sprint 001` / `sprint001` / `sprint-1` はすべて同じスプリントとして扱われます）。
+
 Issue 本文は `<!-- pbi-sync:begin -->` 〜 `<!-- pbi-sync:end -->` の間だけが自動生成されます。
 **マーカーの外に書いた人間のコメントは保持されます。**
 

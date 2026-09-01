@@ -135,8 +135,22 @@ def load_backlog():
     return [merged[k] for k in sorted(merged, key=lambda i: (len(i), i))]
 
 
+def normalize_sprint(name):
+    """スプリント名を照合用に正規化する。
+
+    product_backlog.csv は "Sprint 001"、velocity.csv は "sprint001" のように
+    表記が揺れるため、空白・区切り文字を落として小文字化し、末尾の連番は
+    3 桁ゼロ埋めに揃える（"sprint1" と "sprint001" を同一視する）。
+    """
+    key = re.sub(r"[\s_\-]+", "", (name or "").strip().lower())
+    m = re.match(r"^(.*?)(\d+)$", key)
+    if m:
+        key = "%s%03d" % (m.group(1), int(m.group(2)))
+    return key
+
+
 def load_sprint_dates():
-    """velocity.csv から sprint 名 -> (開始日, 終了日) を作る。"""
+    """velocity.csv から 正規化した sprint 名 -> (開始日, 終了日) を作る。"""
     abs_path = os.path.join(REPO_ROOT, VELOCITY_CSV)
     dates = {}
     if not os.path.exists(abs_path):
@@ -148,11 +162,18 @@ def load_sprint_dates():
             end = (row.get("sprint_end") or "").strip()
             if not sprint:
                 continue
-            dates[sprint] = (
+            dates[normalize_sprint(sprint)] = (
                 start if DATE_RE.match(start) else None,
                 end if DATE_RE.match(end) else None,
             )
     return dates
+
+
+def sprint_period(sprint_dates, sprint):
+    """スプリント名から (開始日, 終了日) を引く。表記揺れを吸収する。"""
+    if not sprint:
+        return (None, None)
+    return sprint_dates.get(normalize_sprint(sprint), (None, None))
 
 
 # --------------------------------------------------------------------------
@@ -188,7 +209,7 @@ def build_body_block(row, sprint_dates):
         lines.append("")
 
     sprint = row.get("sprint", "")
-    start, end = sprint_dates.get(sprint, (None, None))
+    start, end = sprint_period(sprint_dates, sprint)
     meta = [
         ("優先度", row.get("priority") or "-"),
         ("サイズ（ストーリーポイント）", row.get("size") or "-"),
@@ -498,7 +519,7 @@ def edit_field(project_id, item_id, field, value, dry_run):
 
 def desired_fields(row, sprint_dates):
     sprint = row.get("sprint", "")
-    start, end = sprint_dates.get(sprint, (None, None))
+    start, end = sprint_period(sprint_dates, sprint)
     size = row.get("size", "")
     try:
         size_value = float(size) if size else None
