@@ -135,6 +135,11 @@ Issue に `/ask-po <相談内容>` とコメントすると、プロダクトオ
 | `ask-po-on-issue.md` | `claude` | `ANTHROPIC_API_KEY`（設定済み） |
 | `run-*.md` / `scrum-events-worker-*.md` | `copilot` | `COPILOT_GITHUB_TOKEN`（未設定） |
 
+エンジンの `version` と `model` は明示的に固定しています。`version` を省略すると
+`@anthropic-ai/claude-code@latest` を毎回インストールすることになり、`model` を省略すると
+`vars.GH_AW_MODEL_AGENT_CLAUDE || auto` に解決されて他ワークフローの opus 相当より品質が
+下がりうるためです。CLI の更新に追随するときは `version` を上げて再コンパイルします。
+
 `copilot` エンジンに戻す場合は frontmatter を `id: copilot` / `model: claude-opus-4.6` に変えて
 再コンパイルし、`COPILOT_GITHUB_TOKEN` を用意します。**OAuth トークンは使えません。** gh-aw は
 `gh auth token` で得られる `gho_` を明示的に拒否します（実測したエラー）。

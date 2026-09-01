@@ -19,6 +19,11 @@ on:
 # 追加のトークン発行なしで動作するため、こちらを使う。
 engine:
   id: claude
+  # @anthropic-ai/claude-code@latest を毎回入れるとサプライチェーン面で不安定なため版を固定する
+  version: "2.1.257"
+  # 省略すると vars.GH_AW_MODEL_AGENT_CLAUDE || auto になり、他14ワークフローの
+  # opus 相当より品質が下がりうるため明示する
+  model: opus
 
 timeout-minutes: 20
 
