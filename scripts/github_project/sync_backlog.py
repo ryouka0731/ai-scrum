@@ -304,9 +304,11 @@ def ensure_label(repo, dry_run):
            dry_run=dry_run, mutating=True, check=False)
     if dry_run:
         return True
-    names = run_gh_json(["label", "list", "--repo", repo,
-                         "--json", "name", "--limit", "200"], default=[]) or []
-    available = any(x.get("name") == PBI_LABEL for x in names)
+    # 一覧の取得件数上限に依存すると、ラベルが多いリポジトリで取りこぼす。
+    # ラベル名で直接引く（存在しなければ 404）。
+    found = run_gh(["api", "repos/%s/labels/%s" % (repo, PBI_LABEL), "--jq", ".name"],
+                   check=False).strip()
+    available = found == PBI_LABEL
     if not available:
         print("  ! %s ラベルを用意できませんでした。ラベル無しで Issue を作成します"
               % PBI_LABEL, file=sys.stderr)
