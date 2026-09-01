@@ -255,11 +255,18 @@ for obj in objects(sys.stdin):
   fi
 fi
 
+if [[ -n "$REPO" ]]; then
+  REPO_TAB="https://github.com/${REPO}/projects"
+else
+  REPO_TAB="（リポジトリ未リンク）"
+fi
+
 cat <<MSG
 
 完了しました。
-  Project: ${PROJECT_URL}
-  番号   : ${NUMBER}
+  Project     : ${PROJECT_URL}
+  番号        : ${NUMBER}
+  リポジトリ側: ${REPO_TAB}
 
 次の手順:
   1. 同期を試す（変更なし）
