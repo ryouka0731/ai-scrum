@@ -87,6 +87,7 @@ scrum/                          # スクラム成果物
 project/                        # プロジェクト関連の成果物（front/back/infra/docs/sql/test 等、必要に応じて分割）
 security/                       # セキュリティ監査関連の成果物（reviewsXXX/、あれば）
 wiki/                           # wiki成果物（topicAAAA.md、あれば）
+scripts/github_project/         # GitHub Projects 連携スクリプト（docs/integrations/github-projects.md）
 ```
 
 ### プロジェクトとして**必ず**作成する必要がある成果物

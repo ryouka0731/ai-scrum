@@ -266,6 +266,28 @@ gh aw compile
 
 ---
 
+## GitHub Projects 連携
+
+`scrum/product_backlog.csv` を **GitHub Issues / GitHub Projects (V2)** に投影し、
+カンバンとロードマップ（ガント）で可視化できます。
+
+真実の源泉は `scrum/` のファイルで、Projects は**一方向に同期される表示用ビュー**です。
+バックログの変更は Projects 上ではなく、`/backlog-refinement` などのスクラムイベントで行ってください。
+
+```bash
+gh auth refresh -s project                       # Projects API のスコープを追加
+scripts/github_project/bootstrap.sh --owner <owner>   # Project とフィールドを作成
+python3 scripts/github_project/sync_backlog.py --project-number <番号>
+```
+
+`main` への push で自動同期する GitHub Actions
+（[`sync-github-project.yml`](.github/workflows/sync-github-project.yml)）も用意しています。
+
+詳細・セットアップ手順・トラブルシューティングは
+**[GitHub Projects 連携](docs/integrations/github-projects.md)** を参照してください。
+
+---
+
 ## ルール
 
 - すべての成果物は **日本語** で記述されます

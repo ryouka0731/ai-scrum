@@ -69,6 +69,7 @@ security/                       # セキュリティ監査関連の成果物 (�
 必要に応じてフォルダ構造は適宜分割
 
 wiki/                           # wiki成果物(あれば)
+scripts/github_project/         # GitHub Projects 連携スクリプト (docs/integrations/github-projects.md)
 ├── topicAAAA.md                # TopicAAAAに関するナレッジ共有用ファイル
 必要に応じてファイルを追加
 

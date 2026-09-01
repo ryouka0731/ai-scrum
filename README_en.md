@@ -272,6 +272,29 @@ The following settings must be configured on your repository:
 
 ---
 
+## GitHub Projects Integration
+
+Projects `scrum/product_backlog.csv` onto **GitHub Issues / GitHub Projects (V2)** so the backlog
+can be viewed as a Kanban board and a roadmap (Gantt) chart.
+
+The source of truth stays in the `scrum/` files; Projects is a **one-way, read-only projection**.
+Change the backlog through Scrum events such as `/backlog-refinement`, not on the board.
+
+```bash
+gh auth refresh -s project                            # add the Projects API scope
+scripts/github_project/bootstrap.sh --owner <owner>   # create the project and its fields
+python3 scripts/github_project/sync_backlog.py --project-number <number>
+```
+
+A GitHub Actions workflow
+([`sync-github-project.yml`](.github/workflows/sync-github-project.yml)) syncs automatically on
+pushes to `main`.
+
+See **[GitHub Projects Integration](docs/integrations/github-projects.md)** (Japanese) for the full
+setup guide and troubleshooting.
+
+---
+
 ## Rules
 
 - All artifacts follow the **Scrum Guide 2020**
