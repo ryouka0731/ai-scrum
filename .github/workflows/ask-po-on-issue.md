@@ -14,9 +14,16 @@ on:
   slash_command:
     name: ask-po
 
+# copilot エンジンは COPILOT_GITHUB_TOKEN（fine-grained PAT + Copilot Requests 権限）を
+# 要求するが、このリポジトリには ANTHROPIC_API_KEY が既にある。claude エンジンなら
+# 追加のトークン発行なしで動作するため、こちらを使う。
 engine:
-  id: copilot
-  model: claude-opus-4.6
+  id: claude
+  # @anthropic-ai/claude-code@latest を毎回入れるとサプライチェーン面で不安定なため版を固定する
+  version: "2.1.257"
+  # 省略すると vars.GH_AW_MODEL_AGENT_CLAUDE || auto になり、他14ワークフローの
+  # opus 相当より品質が下がりうるため明示する
+  model: opus
 
 timeout-minutes: 20
 

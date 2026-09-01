@@ -125,19 +125,32 @@ Issue に `/ask-po <相談内容>` とコメントすると、プロダクトオ
 シュリはこの場では `scrum/` を書き換えず、必要な変更を提案するだけです（スクラムイベント外での
 成果物変更を防ぐため）。
 
-**実行にはシークレット `COPILOT_GITHUB_TOKEN` が必要です。** これは本ワークフロー固有ではなく、
-`run-*.md` を含む gh-aw ワークフロー全体に共通の前提です。未設定だと secret 検証ステップで停止します。
+### エンジンとシークレット
 
-**必ず fine-grained PAT（`github_pat_...`）を使ってください。** gh-aw は OAuth トークン（`gho_`、
-`gh auth token` で得られるもの）を明示的に拒否します。実測したエラー:
+**このワークフローだけ `claude` エンジンを使い、既存の `ANTHROPIC_API_KEY` で動作します。**
+`run-*.md` など他14ワークフローは `copilot` エンジンで、別途 `COPILOT_GITHUB_TOKEN` が必要です。
+
+| ワークフロー | エンジン | 必要なシークレット |
+|---|---|---|
+| `ask-po-on-issue.md` | `claude` | `ANTHROPIC_API_KEY`（設定済み） |
+| `run-*.md` / `scrum-events-worker-*.md` | `copilot` | `COPILOT_GITHUB_TOKEN`（未設定） |
+
+エンジンの `version` と `model` は明示的に固定しています。`version` を省略すると
+`@anthropic-ai/claude-code@latest` を毎回インストールすることになり、`model` を省略すると
+`vars.GH_AW_MODEL_AGENT_CLAUDE || auto` に解決されて他ワークフローの opus 相当より品質が
+下がりうるためです。CLI の更新に追随するときは `version` を上げて再コンパイルします。
+
+`copilot` エンジンに戻す場合は frontmatter を `id: copilot` / `model: claude-opus-4.6` に変えて
+再コンパイルし、`COPILOT_GITHUB_TOKEN` を用意します。**OAuth トークンは使えません。** gh-aw は
+`gh auth token` で得られる `gho_` を明示的に拒否します（実測したエラー）。
 
 ```
 Error: COPILOT_GITHUB_TOKEN is an OAuth token (gho_...)
 OAuth tokens are not supported for GitHub Copilot.
 ```
 
-さらに、**トークン形式が正しいだけでは足りません。** 以下を満たさないと形式チェックは通っても
-推論時に失敗します（[gh-aw の認証リファレンス](https://github.github.com/gh-aw/reference/auth/#copilot_github_token)）。
+さらに形式が正しいだけでは足りず、以下を満たさないと推論時に失敗します
+（[gh-aw の認証リファレンス](https://github.github.com/gh-aw/reference/auth/#copilot_github_token)）。
 
 1. https://github.com/settings/personal-access-tokens/new で fine-grained PAT を作成する
 2. **Resource owner を Organization ではなく自分のユーザーアカウントにする**
