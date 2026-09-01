@@ -49,6 +49,21 @@ if ! gh project list --owner "$OWNER" --limit 1 >/dev/null 2>&1; then
 fi
 
 # ---------------------------------------------------------------- Project 本体
+# --number 省略時に無条件で作成すると、再実行のたびに同名ボードが増えてしまう。
+# 同じ title の Project が既にあれば再利用する。
+if [[ -z "$NUMBER" ]]; then
+  NUMBER="$(gh project list --owner "$OWNER" --limit 100 --format json | python3 -c '
+import json, sys
+data = json.load(sys.stdin)
+projects = data.get("projects", []) if isinstance(data, dict) else data
+title = sys.argv[1]
+for p in projects:
+    if p.get("title") == title:
+        print(p.get("number", ""))
+        break
+' "$TITLE")"
+fi
+
 if [[ -z "$NUMBER" ]]; then
   echo "==> Project を作成します: ${TITLE} (owner: ${OWNER})"
   NUMBER="$(gh project create --owner "$OWNER" --title "$TITLE" --format json | python3 -c 'import json,sys; print(json.load(sys.stdin)["number"])')"

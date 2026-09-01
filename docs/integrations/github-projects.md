@@ -58,7 +58,8 @@ scripts/github_project/bootstrap.sh --owner <owner> --number <番号>
 ```
 
 Status フィールドの選択肢をスクラム用（New / Ready / In Progress / Review / Done）に置き換え、
-Priority / Size / Sprint / Start date / Target date を作成します。冪等なので再実行できます。
+Priority / Size / Sprint / Start date / Target date を作成します。冪等なので再実行できます
+（`--number` を省略した場合も、同じ title の Project が既にあれば作成せず再利用します）。
 
 > 既存 Project に対して実行すると Status の選択肢が置き換わります。既存アイテムの Status が
 > 消える可能性があるため、新規 Project での利用を推奨します。

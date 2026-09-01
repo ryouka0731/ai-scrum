@@ -10,7 +10,7 @@ name: Issueコメントでシュリに相談
 #   gh aw compile
 
 on:
-  command:
+  slash_command:
     name: ask-po
 
 engine:

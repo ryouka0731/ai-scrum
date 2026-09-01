@@ -19,6 +19,16 @@ on:
         type: boolean
         default: false
   workflow_call:
+    inputs:
+      dry_run:
+        description: "変更せず実行内容だけ表示する"
+        type: boolean
+        required: false
+        default: false
+    secrets:
+      PROJECT_SYNC_TOKEN:
+        description: "Projects V2 に書き込むための repo + project スコープの PAT。未指定なら Issue のみ同期する"
+        required: false
 
 permissions:
   contents: read
