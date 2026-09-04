@@ -139,7 +139,7 @@ DoD や product_backlog と同じ日本語ひな形スタイル。LP の proposa
 
 - `.github/copilot-instructions.md` に「仕様書駆動開発」規約と `scrum/specs/` の構成を追記
   （プロジェクト構成ツリーにも `specs/` を反映）。
-- `README_jp.md` / `README.md` に新フローの説明を追記。
+- `README.md` / `README_en.md` に新フローの説明を追記。
 - `scrum/sprintSAMPLE/specs/PBI-001.md` にサンプル change spec を追加（利用者が形を掴めるように）。
 
 ## 検証方法
