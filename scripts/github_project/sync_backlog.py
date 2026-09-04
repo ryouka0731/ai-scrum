@@ -592,9 +592,24 @@ def sync_project(owner, number, rows, issue_map, sprint_dates, dry_run):
 # --------------------------------------------------------------------------
 
 def detect_repo():
+    """対象リポジトリを owner/name で返す。
+
+    優先順位:
+      1. GITHUB_REPOSITORY 環境変数（GitHub Actions ではこれが正しい値を持つ）
+      2. origin リモートの URL から解決（gh repo view はフォークだと親リポジトリを
+         返すため、bootstrap.sh と同じ方式で origin から直接解決する）
+      3. gh repo view（github.com 以外でホストされている等、origin から解決できない
+         場合のフォールバック）
+    """
     env = os.environ.get("GITHUB_REPOSITORY")
     if env:
         return env
+    proc = subprocess.run(["git", "remote", "get-url", "origin"], cwd=REPO_ROOT,
+                          stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    origin_url = proc.stdout.decode("utf-8", "replace").strip() if proc.returncode == 0 else ""
+    m = re.search(r"github\.com[:/]([^/]+)/([^/]+)$", origin_url)
+    if m:
+        return "%s/%s" % (m.group(1), re.sub(r"\.git$", "", m.group(2)))
     out = run_gh(["repo", "view", "--json", "nameWithOwner", "-q", ".nameWithOwner"])
     return out.strip()
 
@@ -603,12 +618,20 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description="scrum/ の CSV を GitHub Issues / Projects に同期する")
     parser.add_argument("--repo", help="対象リポジトリ (owner/name)。既定は現在のリポジトリ")
     parser.add_argument("--owner", help="Project の所有者。既定はリポジトリの owner")
-    parser.add_argument("--project-number", type=int,
-                        default=int(os.environ.get("SCRUM_PROJECT_NUMBER") or 0),
-                        help="Projects V2 の番号。0 なら Project 同期をスキップ")
+    parser.add_argument("--project-number", type=int, default=None,
+                        help="Projects V2 の番号。省略時は環境変数 SCRUM_PROJECT_NUMBER"
+                             "（未設定なら 0 = Project 同期をスキップ）")
     parser.add_argument("--issues-only", action="store_true", help="Issue のみ同期する")
     parser.add_argument("--dry-run", action="store_true", help="変更を行わず実行内容だけ表示する")
     args = parser.parse_args(argv)
+
+    if args.project_number is None:
+        env_value = os.environ.get("SCRUM_PROJECT_NUMBER") or "0"
+        try:
+            args.project_number = int(env_value)
+        except ValueError:
+            raise GhError(
+                "環境変数 SCRUM_PROJECT_NUMBER は数値で指定してください: %r" % env_value)
 
     repo = args.repo or detect_repo()
     owner = args.owner or repo.split("/")[0]
