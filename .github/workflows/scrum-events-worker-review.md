@@ -39,12 +39,12 @@ imports:
   - uses: shared/apm.md
     with:
       packages:
-        - shyamagu-ms/ai-scrum/.github/skills/sprint-review
-        - shyamagu-ms/ai-scrum/.github/agents/customer.itsuki.agent.md
-        - shyamagu-ms/ai-scrum/.github/agents/product-owner.shuri.agent.md
-        - shyamagu-ms/ai-scrum/.github/agents/developer.maya.agent.md
-        - shyamagu-ms/ai-scrum/.github/agents/developer.daichi.agent.md
-        - shyamagu-ms/ai-scrum/.github/agents/scrum-master.kenji.agent.md
+        - ryouka0731/ai-scrum/.github/skills/sprint-review
+        - ryouka0731/ai-scrum/.github/agents/customer.itsuki.agent.md
+        - ryouka0731/ai-scrum/.github/agents/product-owner.shuri.agent.md
+        - ryouka0731/ai-scrum/.github/agents/developer.maya.agent.md
+        - ryouka0731/ai-scrum/.github/agents/developer.daichi.agent.md
+        - ryouka0731/ai-scrum/.github/agents/scrum-master.kenji.agent.md
 timeout-minutes: 360
 permissions:
   contents: read
