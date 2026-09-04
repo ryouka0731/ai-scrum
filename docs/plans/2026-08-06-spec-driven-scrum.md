@@ -29,7 +29,7 @@
 - `.github/skills/sprint-review/SKILL.md` — 仕様ナレッジ同期＋ドリフト監査
 - `scrum/definition_of_done.md` — カテゴリ「9. 仕様準拠」追加
 - `.github/copilot-instructions.md` — 仕様書駆動規約＋構成ツリー反映
-- `README_jp.md` / `README.md` — 新フロー説明追記
+- `README.md` / `README_en.md` — 新フロー説明追記
 
 ---
 
@@ -712,12 +712,12 @@ git commit -m "docs: copilot-instructionsに仕様書駆動規約と構成を反
 ## Task 11: README に新フローを追記し、全体整合を検証
 
 **Files:**
-- Modify: `README_jp.md`（`### Step 3. バックログリファインメント` 説明に仕様起票を追記）
-- Modify: `README.md`（対応する英語箇所、存在する場合）
+- Modify: `README.md`（`### Step 3. バックログリファインメント` 説明に仕様起票を追記）
+- Modify: `README_en.md`（対応する英語箇所、存在する場合）
 
-- [ ] **Step 1: README_jp.md の該当箇所を確認**
+- [ ] **Step 1: README.md の該当箇所を確認**
 
-Run: `grep -n "backlog-refinement\|完成の定義\|product_goal" README_jp.md | head`
+Run: `grep -n "backlog-refinement\|完成の定義\|product_goal" README.md | head`
 出力から Step 3（バックログリファインメント）の作成物リスト箇所を特定する。
 
 - [ ] **Step 2: Step 3 の作成物リストに仕様ドラフトを追記**
@@ -737,16 +737,16 @@ Run: `grep -n "backlog-refinement\|完成の定義\|product_goal" README_jp.md |
 > 本テンプレートは **仕様書駆動スクラム** を採用しています。詳細は [docs/workflows/spec-driven-scrum.md](docs/workflows/spec-driven-scrum.md) を参照してください。
 ```
 
-- [ ] **Step 3: README.md（英語）に同等の一文を追記（該当箇所があれば）**
+- [ ] **Step 3: README_en.md に同等の一文を追記（該当箇所があれば）**
 
-Run: `grep -n "backlog-refinement\|Definition of Done\|Refinement" README.md | head`
-該当のリファインメント説明箇所に、以下の一文を追記する（適切な英語見出し直後）:
+Run: `grep -n "backlog-refinement\|Definition of Done\|Refinement" README_en.md | head`
+該当のリファインメント説明箇所に、以下の一文を追記する（適切な見出し直後）:
 
 ```
 > This template adopts **Spec-Driven Scrum**. See [docs/workflows/spec-driven-scrum.md](docs/workflows/spec-driven-scrum.md).
 ```
 
-該当箇所が無い/構造が異なる場合は、README.md 冒頭の概要セクション末尾にこの一文を追記する。
+該当箇所が無い/構造が異なる場合は、README_en.md 冒頭の概要セクション末尾にこの一文を追記する。
 
 - [ ] **Step 4: 全体整合の検証（ドリフトなし確認）**
 
@@ -771,7 +771,7 @@ Expected: 1以上（参照が張られている）
 - [ ] **Step 5: コミット**
 
 ```bash
-git add README_jp.md README.md
+git add README.md README_en.md
 git commit -m "docs: READMEに仕様書駆動スクラムの説明を追記"
 ```
 

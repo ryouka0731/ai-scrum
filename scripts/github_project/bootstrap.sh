@@ -35,30 +35,44 @@ while [[ $# -gt 0 ]]; do
     --number)  NUMBER="${2:-}"; shift 2 ;;
     --repo)    REPO="${2:-}"; shift 2 ;;
     --no-link) NO_LINK="1"; shift ;;
-    -h|--help) sed -n '2,22p' "$0"; exit 0 ;;
+    -h|--help) sed -n '2,21p' "$0"; exit 0 ;;
     *) echo "不明な引数: $1" >&2; exit 2 ;;
   esac
 done
 
-if [[ -z "$OWNER" ]]; then
-  OWNER="$(gh repo view --json owner -q .owner.login)"
-fi
-if [[ ! "$OWNER" =~ ^[A-Za-z0-9][A-Za-z0-9-]{0,38}$ ]]; then
-  echo "owner の形式が不正です: ${OWNER}" >&2
-  exit 2
-fi
-if [[ -z "$NO_LINK" && -z "$REPO" ]]; then
+# OWNER の既定値が REPO から導出できるよう、REPO を先に解決する。
+if [[ -z "$REPO" ]]; then
   # gh repo view はフォークだと親リポジトリを返すため、origin リモートから解決する。
   ORIGIN_URL="$(git remote get-url origin 2>/dev/null || true)"
   # bash の =~ は ERE なので遅延量指定子 (+?) は使えない。貪欲に取って .git を後で剥がす。
-  if [[ "$ORIGIN_URL" =~ github\.com[:/]([^/]+)/([^/]+)$ ]]; then
-    REPO="${BASH_REMATCH[1]}/${BASH_REMATCH[2]%.git}"
+  # github.com が URL のホスト部（authority）であることを厳密に検証する。
+  # パスの一部に "github.com" が含まれるだけの別ホスト
+  # （例: https://gitlab.example.com/github.com/evil/repo.git）は一致させない。
+  if [[ "$ORIGIN_URL" =~ ^([^/@[:space:]]+@)?github\.com:([^/]+)/([^/]+)$ ]]; then
+    # SCP形式: git@github.com:owner/repo.git （ユーザー名省略時は git がローカルの
+    # ユーザー名を補って接続するため github.com:owner/repo.git も正当な形式）
+    REPO="${BASH_REMATCH[2]}/${BASH_REMATCH[3]%.git}"
+  elif [[ "$ORIGIN_URL" =~ ^(https?|ssh|git)://([^@/[:space:]]+@)?github\.com/([^/]+)/([^/]+)$ ]]; then
+    # https:// または ssh:// 形式: https://github.com/owner/repo.git / ssh://git@github.com/owner/repo.git
+    REPO="${BASH_REMATCH[3]}/${BASH_REMATCH[4]%.git}"
   else
     REPO="$(gh repo view --json nameWithOwner -q .nameWithOwner 2>/dev/null || true)"
   fi
 fi
 if [[ -n "$REPO" && ! "$REPO" =~ ^[A-Za-z0-9][A-Za-z0-9-]{0,38}/[A-Za-z0-9._-]{1,100}$ ]]; then
   echo "repo の形式が不正です（owner/name で指定してください）: ${REPO}" >&2
+  exit 2
+fi
+if [[ -z "$OWNER" ]]; then
+  if [[ -n "$REPO" ]]; then
+    OWNER="${REPO%%/*}"
+  else
+    # REPO が解決できなかった場合のフォールバック
+    OWNER="$(gh repo view --json owner -q .owner.login 2>/dev/null || true)"
+  fi
+fi
+if [[ ! "$OWNER" =~ ^[A-Za-z0-9][A-Za-z0-9-]{0,38}$ ]]; then
+  echo "owner の形式が不正です: ${OWNER}" >&2
   exit 2
 fi
 if [[ -n "$NUMBER" && ! "$NUMBER" =~ ^[0-9]+$ ]]; then
@@ -95,7 +109,11 @@ PY
 # --number 省略時に無条件で作成すると、再実行のたびに同名ボードが増えてしまう。
 # 同じ title の Project が既にあれば再利用する。
 if [[ -z "$NUMBER" ]]; then
-  NUMBER="$(gh api graphql --paginate -f query='
+  # gh api の失敗と python の解析失敗を「見つからなかった」と取り違えないよう、
+  # 終了コードを別々に検査する（|| true で握り潰すと、取得失敗時にも同名 Project を
+  # 再作成してしまう）。
+  set +e
+  GRAPHQL_OUT="$(gh api graphql --paginate -f query='
     query($login: String!, $endCursor: String) {
       repositoryOwner(login: $login) {
         ... on ProjectV2Owner {
@@ -105,15 +123,33 @@ if [[ -z "$NUMBER" ]]; then
           }
         }
       }
-    }' -f login="$OWNER" 2>/dev/null | python3 -c "$PY_OBJECTS
+    }' -f login="$OWNER")"
+  GH_STATUS=$?
+  set -e
+  if [[ $GH_STATUS -ne 0 ]]; then
+    echo "エラー: 既存 Project 一覧の取得に失敗しました（gh api graphql 終了コード: ${GH_STATUS}）" >&2
+    exit 1
+  fi
+
+  # 全ページを読み切ってから判定する。見つかった時点で sys.exit(0) すると gh 側の
+  # --paginate がまだ書き込み中の場合に SIGPIPE を起こしうるため、途中終了しない。
+  set +e
+  NUMBER="$(printf '%s' "$GRAPHQL_OUT" | python3 -c "$PY_OBJECTS
 title = sys.argv[1]
+found = ''
 for obj in objects(sys.stdin):
     owner = (obj.get('data') or {}).get('repositoryOwner') or {}
     for n in ((owner.get('projectsV2') or {}).get('nodes') or []):
         if n.get('title') == title:
-            print(n.get('number', ''))
-            sys.exit(0)
+            found = str(n.get('number', ''))
+print(found)
 " "$TITLE")"
+  PY_STATUS=$?
+  set -e
+  if [[ $PY_STATUS -ne 0 ]]; then
+    echo "エラー: 既存 Project 一覧の解析に失敗しました（終了コード: ${PY_STATUS}）" >&2
+    exit 1
+  fi
 fi
 
 if [[ -z "$NUMBER" ]]; then

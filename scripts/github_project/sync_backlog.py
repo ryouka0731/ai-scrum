@@ -22,6 +22,7 @@ import os
 import re
 import subprocess
 import sys
+import urllib.parse
 
 REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 
@@ -591,10 +592,81 @@ def sync_project(owner, number, rows, issue_map, sprint_dates, dry_run):
 # エントリポイント
 # --------------------------------------------------------------------------
 
+#: origin URL のスキーム許可リスト。ftp:// や javascript:// 等、
+#: git が実際に使わないスキームは None を返してフォールバックへ進める。
+_ALLOWED_ORIGIN_SCHEMES = frozenset(["http", "https", "ssh", "git"])
+
+
+def parse_github_origin_url(url):
+    """origin リモートの URL を (owner, repo) に解析する。
+
+    github.com が URL のホスト部（authority）であることを厳密に検証する。
+    パスの一部に "github.com" という文字列が含まれるだけの別ホスト
+    （例: https://gitlab.example.com/github.com/evil/repo.git）は None を返す。
+
+    対応する形式:
+      - SCP形式: github.com:owner/repo.git（ユーザー名省略時は git がローカルの
+        ユーザー名を補って接続するため、これも正当な形式）
+                 git@github.com:owner/repo.git
+      - https:   https://github.com/owner/repo.git
+      - ssh://:  ssh://git@github.com/owner/repo.git
+
+    解析できない場合、http/https/ssh/git 以外のスキームの場合、URL として
+    不正な場合、または github.com 以外のホストの場合は None を返す。
+    """
+    url = (url or "").strip()
+    if not url:
+        return None
+
+    if "://" not in url:
+        # SCP形式 ([user@]host:path)。https:// 等は上の分岐で処理済みのためここには来ない。
+        m = re.match(r"^(?:[^/@\s]+@)?([^:/\s]+):(.+)$", url)
+        if not m:
+            return None
+        host, path = m.group(1), m.group(2)
+    else:
+        try:
+            parsed = urllib.parse.urlsplit(url)
+            host = parsed.hostname or ""
+        except ValueError:
+            # 不正な URL（例: IPv6 表記が壊れている等）で例外にせず None を返す。
+            return None
+        if parsed.scheme not in _ALLOWED_ORIGIN_SCHEMES:
+            return None
+        path = parsed.path.lstrip("/")
+
+    if host.lower() != "github.com":
+        return None
+
+    parts = [p for p in path.split("/") if p]
+    if len(parts) < 2:
+        return None
+    owner, repo = parts[0], parts[1]
+    repo = re.sub(r"\.git$", "", repo)
+    if not owner or not repo:
+        return None
+    return owner, repo
+
+
 def detect_repo():
+    """対象リポジトリを owner/name で返す。
+
+    優先順位:
+      1. GITHUB_REPOSITORY 環境変数（GitHub Actions ではこれが正しい値を持つ）
+      2. origin リモートの URL から解決（gh repo view はフォークだと親リポジトリを
+         返すため、bootstrap.sh と同じ方式で origin から直接解決する）
+      3. gh repo view（github.com 以外でホストされている等、origin から解決できない
+         場合のフォールバック）
+    """
     env = os.environ.get("GITHUB_REPOSITORY")
     if env:
         return env
+    proc = subprocess.run(["git", "remote", "get-url", "origin"], cwd=REPO_ROOT,
+                          stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    origin_url = proc.stdout.decode("utf-8", "replace").strip() if proc.returncode == 0 else ""
+    parsed = parse_github_origin_url(origin_url)
+    if parsed:
+        return "%s/%s" % parsed
     out = run_gh(["repo", "view", "--json", "nameWithOwner", "-q", ".nameWithOwner"])
     return out.strip()
 
@@ -603,12 +675,20 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description="scrum/ の CSV を GitHub Issues / Projects に同期する")
     parser.add_argument("--repo", help="対象リポジトリ (owner/name)。既定は現在のリポジトリ")
     parser.add_argument("--owner", help="Project の所有者。既定はリポジトリの owner")
-    parser.add_argument("--project-number", type=int,
-                        default=int(os.environ.get("SCRUM_PROJECT_NUMBER") or 0),
-                        help="Projects V2 の番号。0 なら Project 同期をスキップ")
+    parser.add_argument("--project-number", type=int, default=None,
+                        help="Projects V2 の番号。省略時は環境変数 SCRUM_PROJECT_NUMBER"
+                             "（未設定なら 0 = Project 同期をスキップ）")
     parser.add_argument("--issues-only", action="store_true", help="Issue のみ同期する")
     parser.add_argument("--dry-run", action="store_true", help="変更を行わず実行内容だけ表示する")
     args = parser.parse_args(argv)
+
+    if args.project_number is None:
+        env_value = os.environ.get("SCRUM_PROJECT_NUMBER") or "0"
+        try:
+            args.project_number = int(env_value)
+        except ValueError:
+            raise GhError(
+                "環境変数 SCRUM_PROJECT_NUMBER は数値で指定してください: %r" % env_value)
 
     repo = args.repo or detect_repo()
     owner = args.owner or repo.split("/")[0]

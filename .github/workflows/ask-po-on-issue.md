@@ -27,7 +27,11 @@ engine:
 
 timeout-minutes: 20
 
-permissions: read-all
+permissions:
+  contents: read
+  issues: read
+  pull-requests: read
+  discussions: read
 
 network:
   allowed:
