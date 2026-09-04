@@ -35,19 +35,13 @@ while [[ $# -gt 0 ]]; do
     --number)  NUMBER="${2:-}"; shift 2 ;;
     --repo)    REPO="${2:-}"; shift 2 ;;
     --no-link) NO_LINK="1"; shift ;;
-    -h|--help) sed -n '2,22p' "$0"; exit 0 ;;
+    -h|--help) sed -n '2,21p' "$0"; exit 0 ;;
     *) echo "不明な引数: $1" >&2; exit 2 ;;
   esac
 done
 
-if [[ -z "$OWNER" ]]; then
-  OWNER="$(gh repo view --json owner -q .owner.login)"
-fi
-if [[ ! "$OWNER" =~ ^[A-Za-z0-9][A-Za-z0-9-]{0,38}$ ]]; then
-  echo "owner の形式が不正です: ${OWNER}" >&2
-  exit 2
-fi
-if [[ -z "$NO_LINK" && -z "$REPO" ]]; then
+# OWNER の既定値が REPO から導出できるよう、REPO を先に解決する。
+if [[ -z "$REPO" ]]; then
   # gh repo view はフォークだと親リポジトリを返すため、origin リモートから解決する。
   ORIGIN_URL="$(git remote get-url origin 2>/dev/null || true)"
   # bash の =~ は ERE なので遅延量指定子 (+?) は使えない。貪欲に取って .git を後で剥がす。
@@ -59,6 +53,18 @@ if [[ -z "$NO_LINK" && -z "$REPO" ]]; then
 fi
 if [[ -n "$REPO" && ! "$REPO" =~ ^[A-Za-z0-9][A-Za-z0-9-]{0,38}/[A-Za-z0-9._-]{1,100}$ ]]; then
   echo "repo の形式が不正です（owner/name で指定してください）: ${REPO}" >&2
+  exit 2
+fi
+if [[ -z "$OWNER" ]]; then
+  if [[ -n "$REPO" ]]; then
+    OWNER="${REPO%%/*}"
+  else
+    # REPO が解決できなかった場合のフォールバック
+    OWNER="$(gh repo view --json owner -q .owner.login 2>/dev/null || true)"
+  fi
+fi
+if [[ ! "$OWNER" =~ ^[A-Za-z0-9][A-Za-z0-9-]{0,38}$ ]]; then
+  echo "owner の形式が不正です: ${OWNER}" >&2
   exit 2
 fi
 if [[ -n "$NUMBER" && ! "$NUMBER" =~ ^[0-9]+$ ]]; then
@@ -113,7 +119,7 @@ for obj in objects(sys.stdin):
         if n.get('title') == title:
             print(n.get('number', ''))
             sys.exit(0)
-" "$TITLE")"
+" "$TITLE" || true)"
 fi
 
 if [[ -z "$NUMBER" ]]; then
