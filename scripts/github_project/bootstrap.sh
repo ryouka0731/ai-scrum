@@ -48,9 +48,10 @@ if [[ -z "$REPO" ]]; then
   # github.com が URL のホスト部（authority）であることを厳密に検証する。
   # パスの一部に "github.com" が含まれるだけの別ホスト
   # （例: https://gitlab.example.com/github.com/evil/repo.git）は一致させない。
-  if [[ "$ORIGIN_URL" =~ ^[^/@[:space:]]+@github\.com:([^/]+)/([^/]+)$ ]]; then
-    # SCP形式: git@github.com:owner/repo.git
-    REPO="${BASH_REMATCH[1]}/${BASH_REMATCH[2]%.git}"
+  if [[ "$ORIGIN_URL" =~ ^([^/@[:space:]]+@)?github\.com:([^/]+)/([^/]+)$ ]]; then
+    # SCP形式: git@github.com:owner/repo.git （ユーザー名省略時は git がローカルの
+    # ユーザー名を補って接続するため github.com:owner/repo.git も正当な形式）
+    REPO="${BASH_REMATCH[2]}/${BASH_REMATCH[3]%.git}"
   elif [[ "$ORIGIN_URL" =~ ^(https?|ssh|git)://([^@/[:space:]]+@)?github\.com/([^/]+)/([^/]+)$ ]]; then
     # https:// または ssh:// 形式: https://github.com/owner/repo.git / ssh://git@github.com/owner/repo.git
     REPO="${BASH_REMATCH[3]}/${BASH_REMATCH[4]%.git}"

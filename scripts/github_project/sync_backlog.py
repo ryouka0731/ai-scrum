@@ -592,6 +592,11 @@ def sync_project(owner, number, rows, issue_map, sprint_dates, dry_run):
 # エントリポイント
 # --------------------------------------------------------------------------
 
+#: origin URL のスキーム許可リスト。ftp:// や javascript:// 等、
+#: git が実際に使わないスキームは None を返してフォールバックへ進める。
+_ALLOWED_ORIGIN_SCHEMES = frozenset(["http", "https", "ssh", "git"])
+
+
 def parse_github_origin_url(url):
     """origin リモートの URL を (owner, repo) に解析する。
 
@@ -600,25 +605,34 @@ def parse_github_origin_url(url):
     （例: https://gitlab.example.com/github.com/evil/repo.git）は None を返す。
 
     対応する形式:
-      - SCP形式: git@github.com:owner/repo.git
+      - SCP形式: github.com:owner/repo.git（ユーザー名省略時は git がローカルの
+        ユーザー名を補って接続するため、これも正当な形式）
+                 git@github.com:owner/repo.git
       - https:   https://github.com/owner/repo.git
       - ssh://:  ssh://git@github.com/owner/repo.git
 
-    解析できない場合、または github.com 以外のホストの場合は None を返す。
+    解析できない場合、http/https/ssh/git 以外のスキームの場合、URL として
+    不正な場合、または github.com 以外のホストの場合は None を返す。
     """
     url = (url or "").strip()
     if not url:
         return None
 
     if "://" not in url:
-        # SCP形式 (user@host:path)。https:// 等は上の分岐で処理済みのためここには来ない。
-        m = re.match(r"^[^/@\s]+@([^:/\s]+):(.+)$", url)
+        # SCP形式 ([user@]host:path)。https:// 等は上の分岐で処理済みのためここには来ない。
+        m = re.match(r"^(?:[^/@\s]+@)?([^:/\s]+):(.+)$", url)
         if not m:
             return None
         host, path = m.group(1), m.group(2)
     else:
-        parsed = urllib.parse.urlsplit(url)
-        host = parsed.hostname or ""
+        try:
+            parsed = urllib.parse.urlsplit(url)
+            host = parsed.hostname or ""
+        except ValueError:
+            # 不正な URL（例: IPv6 表記が壊れている等）で例外にせず None を返す。
+            return None
+        if parsed.scheme not in _ALLOWED_ORIGIN_SCHEMES:
+            return None
         path = parsed.path.lstrip("/")
 
     if host.lower() != "github.com":

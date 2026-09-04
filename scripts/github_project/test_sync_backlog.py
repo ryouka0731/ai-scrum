@@ -22,6 +22,14 @@ class ParseGithubOriginUrlTest(unittest.TestCase):
             ("owner", "repo"),
         )
 
+    def test_scp_style_without_user(self):
+        # ユーザー名省略時は git がローカルのユーザー名を補って接続するため、
+        # これも正当な origin URL として受理する。
+        self.assertEqual(
+            parse_github_origin_url("github.com:owner/repo.git"),
+            ("owner", "repo"),
+        )
+
     def test_https(self):
         self.assertEqual(
             parse_github_origin_url("https://github.com/owner/repo.git"),
@@ -59,6 +67,16 @@ class ParseGithubOriginUrlTest(unittest.TestCase):
         self.assertIsNone(parse_github_origin_url(""))
         self.assertIsNone(parse_github_origin_url("not a url"))
         self.assertIsNone(parse_github_origin_url("https://github.com/owner"))
+
+    def test_rejects_unsupported_schemes(self):
+        self.assertIsNone(parse_github_origin_url("ftp://github.com/owner/repo"))
+        self.assertIsNone(parse_github_origin_url("file://github.com/owner/repo"))
+        self.assertIsNone(parse_github_origin_url("javascript://github.com/o/r"))
+
+    def test_malformed_url_returns_none_without_raising(self):
+        # 壊れた IPv6 表記等で urlsplit() が ValueError を送出しても、
+        # フォールバックへ進めるよう None を返す（例外を伝播させない）。
+        self.assertIsNone(parse_github_origin_url("https://[github.com/owner/repo"))
 
 
 if __name__ == "__main__":
