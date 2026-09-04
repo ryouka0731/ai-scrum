@@ -22,6 +22,7 @@ import os
 import re
 import subprocess
 import sys
+import urllib.parse
 
 REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 
@@ -591,6 +592,48 @@ def sync_project(owner, number, rows, issue_map, sprint_dates, dry_run):
 # エントリポイント
 # --------------------------------------------------------------------------
 
+def parse_github_origin_url(url):
+    """origin リモートの URL を (owner, repo) に解析する。
+
+    github.com が URL のホスト部（authority）であることを厳密に検証する。
+    パスの一部に "github.com" という文字列が含まれるだけの別ホスト
+    （例: https://gitlab.example.com/github.com/evil/repo.git）は None を返す。
+
+    対応する形式:
+      - SCP形式: git@github.com:owner/repo.git
+      - https:   https://github.com/owner/repo.git
+      - ssh://:  ssh://git@github.com/owner/repo.git
+
+    解析できない場合、または github.com 以外のホストの場合は None を返す。
+    """
+    url = (url or "").strip()
+    if not url:
+        return None
+
+    if "://" not in url:
+        # SCP形式 (user@host:path)。https:// 等は上の分岐で処理済みのためここには来ない。
+        m = re.match(r"^[^/@\s]+@([^:/\s]+):(.+)$", url)
+        if not m:
+            return None
+        host, path = m.group(1), m.group(2)
+    else:
+        parsed = urllib.parse.urlsplit(url)
+        host = parsed.hostname or ""
+        path = parsed.path.lstrip("/")
+
+    if host.lower() != "github.com":
+        return None
+
+    parts = [p for p in path.split("/") if p]
+    if len(parts) < 2:
+        return None
+    owner, repo = parts[0], parts[1]
+    repo = re.sub(r"\.git$", "", repo)
+    if not owner or not repo:
+        return None
+    return owner, repo
+
+
 def detect_repo():
     """対象リポジトリを owner/name で返す。
 
@@ -607,9 +650,9 @@ def detect_repo():
     proc = subprocess.run(["git", "remote", "get-url", "origin"], cwd=REPO_ROOT,
                           stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     origin_url = proc.stdout.decode("utf-8", "replace").strip() if proc.returncode == 0 else ""
-    m = re.search(r"github\.com[:/]([^/]+)/([^/]+)$", origin_url)
-    if m:
-        return "%s/%s" % (m.group(1), re.sub(r"\.git$", "", m.group(2)))
+    parsed = parse_github_origin_url(origin_url)
+    if parsed:
+        return "%s/%s" % parsed
     out = run_gh(["repo", "view", "--json", "nameWithOwner", "-q", ".nameWithOwner"])
     return out.strip()
 
