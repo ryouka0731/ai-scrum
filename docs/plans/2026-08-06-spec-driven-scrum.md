@@ -737,16 +737,16 @@ Run: `grep -n "backlog-refinement\|完成の定義\|product_goal" README.md | he
 > 本テンプレートは **仕様書駆動スクラム** を採用しています。詳細は [docs/workflows/spec-driven-scrum.md](docs/workflows/spec-driven-scrum.md) を参照してください。
 ```
 
-- [ ] **Step 3: README.md（英語）に同等の一文を追記（該当箇所があれば）**
+- [ ] **Step 3: README_en.md に同等の一文を追記（該当箇所があれば）**
 
-Run: `grep -n "backlog-refinement\|Definition of Done\|Refinement" README.md | head`
-該当のリファインメント説明箇所に、以下の一文を追記する（適切な英語見出し直後）:
+Run: `grep -n "backlog-refinement\|Definition of Done\|Refinement" README_en.md | head`
+該当のリファインメント説明箇所に、以下の一文を追記する（適切な見出し直後）:
 
 ```
 > This template adopts **Spec-Driven Scrum**. See [docs/workflows/spec-driven-scrum.md](docs/workflows/spec-driven-scrum.md).
 ```
 
-該当箇所が無い/構造が異なる場合は、README.md 冒頭の概要セクション末尾にこの一文を追記する。
+該当箇所が無い/構造が異なる場合は、README_en.md 冒頭の概要セクション末尾にこの一文を追記する。
 
 - [ ] **Step 4: 全体整合の検証（ドリフトなし確認）**
 
