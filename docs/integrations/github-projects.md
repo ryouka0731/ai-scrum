@@ -40,8 +40,10 @@ Issue 本文は `<!-- pbi-sync:begin -->` 〜 `<!-- pbi-sync:end -->` の間だ�
 
 ひな形のままの行（`（PBIタイトル）` / `YYYY-MM-DD` など）は同期対象外です。
 
-CSV に存在しない PBI の Issue（過去に同期した後で CSV から消えたもの）は**孤児**として毎回警告されます。
+タイトルが `[PBI-XXX]` 形式で、CSV に対応する行がない Issue は**孤児**として毎回警告されます。
+過去に同期したものに限らず、手で作った Issue もタイトルがこの形式なら対象になります。
 クローズするには `--close-orphans` を付けます。削除は一切しません。
+クローズ前に理由コメントを投稿し、失敗した Issue は次回も警告されます。再実行しても同じコメントは二重投稿されません。
 
 ```bash
 python3 scripts/github_project/sync_backlog.py --close-orphans --dry-run   # 対象を確認
@@ -119,7 +121,7 @@ Project 画面で以下を追加すると、カンバンとガントになりま
 
 ## 既知の制限
 
-- **CSV から PBI 行を削除しても Issue は削除されない。** 同期は削除を一切行わない。CSV に無い PBI の Issue は「孤児」として毎回警告され、`--close-orphans` を付けたときだけクローズされる（コメントを残してから `not planned` で閉じる）。CSV に PBI を戻せば次回同期で再オープンされる。
+- **CSV から PBI 行を削除しても Issue は削除されない。** 同期は削除を一切行わない。CSV に無い PBI の Issue は「孤児」として毎回警告され、`--close-orphans` を付けたときだけクローズされる（コメントを残してから `not planned` で閉じる）。未完了の PBI を CSV に戻せば次回同期で再オープンされる（`status` が `Done` の PBI や `product_backlog_done.csv` に戻した PBI はクローズのままになる）。
 - **同期は CSV → GitHub の一方向のみ。** GitHub 側で Issue のタイトルや本文の自動生成ブロック（`<!-- pbi-sync:begin -->` 〜 `<!-- pbi-sync:end -->`）を編集しても、次回同期で CSV の内容に戻る。マーカーの外に書いたコメントは保持される。
 - **ひな形のままの行は同期対象外。** 全角括弧のタイトル、`YYYY-MM-DD` の日付、`Critical/High/Medium/Low` のような複合値を持つ行はプレースホルダとみなしてスキップする。
 
