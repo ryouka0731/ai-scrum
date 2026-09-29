@@ -20,9 +20,14 @@ from sync_backlog import (  # noqa: E402
     GhError,
     find_orphan_issues,
     parse_github_origin_url,
+    UNKNOWN,
+    build_body_block,
+    desired_fields,
     orphan_comment_body,
     primary_issue_numbers,
     report_orphan_issues,
+    sprint_period,
+    sync_project,
     warn,
 )
 
@@ -378,6 +383,136 @@ class OrphanWarningLevelTest(unittest.TestCase):
         out, _ = self._run(_pairs((10, "PBI-002", "CLOSED"), (11, "PBI-003")))
         self.assertIn("::warning::", out)
         self.assertIn("2 件あります（うちオープン 1 件）", out)
+
+
+def _row(**over):
+    row = {"id": "PBI-001", "title": "t", "description": "d", "acceptance_criteria": "a",
+           "priority": "High", "size": "5", "status": "Ready", "sprint": "Sprint 001",
+           "created_at": "2026-09-01", "updated_at": "2026-09-01"}
+    row.update(over)
+    return row
+
+
+class SprintPeriodTest(unittest.TestCase):
+    """「情報が無い」と「空であるべき」を区別することを確認する。
+
+    区別しないと、ひな形の velocity.csv があるだけで Project 側の日付が消される。
+    """
+
+    def test_real_dates_are_returned(self):
+        dates = {"sprint001": ("2026-09-01", "2026-09-12")}
+        self.assertEqual(("2026-09-01", "2026-09-12"), sprint_period(dates, "Sprint 001"))
+
+    def test_absorbs_sprint_name_variants(self):
+        dates = {"sprint001": ("2026-09-01", "2026-09-12")}
+        for name in ("Sprint 001", "sprint001", "sprint-001", "SPRINT_001"):
+            self.assertEqual(("2026-09-01", "2026-09-12"), sprint_period(dates, name), name)
+
+    def test_unassigned_sprint_is_explicitly_empty(self):
+        # スプリント未割当なら日付は空であるべきなので消してよい。
+        self.assertEqual((None, None), sprint_period({"sprint001": ("a", "b")}, ""))
+
+    def test_placeholder_dates_are_unknown(self):
+        # velocity.csv がひな形（日付が弾かれて None）のときは UNKNOWN。
+        self.assertEqual((UNKNOWN, UNKNOWN), sprint_period({"sprint001": (None, None)},
+                                                           "Sprint 001"))
+
+    def test_sprint_missing_from_velocity_is_unknown(self):
+        self.assertEqual((UNKNOWN, UNKNOWN), sprint_period({}, "Sprint 001"))
+
+    def test_desired_fields_marks_dates_unknown(self):
+        f = desired_fields(_row(), {"sprint001": (None, None)})
+        self.assertIs(UNKNOWN, f["Start date"])
+        self.assertIs(UNKNOWN, f["Target date"])
+        # スプリント自体は行から取るので明示的な値のまま。
+        self.assertEqual("Sprint 001", f["Sprint"])
+
+    def test_desired_fields_clears_dates_when_sprint_unassigned(self):
+        f = desired_fields(_row(sprint=""), {"sprint001": ("2026-09-01", "2026-09-12")})
+        self.assertIsNone(f["Start date"])
+        self.assertIsNone(f["Target date"])
+
+
+class BodyPeriodTest(unittest.TestCase):
+    """Issue 本文に UNKNOWN の repr が漏れないことを確認する。"""
+
+    def test_unknown_period_renders_as_dash(self):
+        body = build_body_block(_row(), {"sprint001": (None, None)})
+        period = [l for l in body.splitlines() if "| 期間 |" in l][0]
+        self.assertNotIn("不明", period)
+        self.assertIn("| - |", period)
+
+    def test_real_period_is_rendered(self):
+        body = build_body_block(_row(), {"sprint001": ("2026-09-01", "2026-09-12")})
+        period = [l for l in body.splitlines() if "| 期間 |" in l][0]
+        self.assertIn("2026-09-01 〜 2026-09-12", period)
+
+
+class SyncProjectDateGuardTest(unittest.TestCase):
+    """UNKNOWN の日付で Project 側の値を消さないことを確認する。
+
+    これが崩れると、ひな形の velocity.csv があるだけで手入力した
+    ロードマップの日付が --clear で失われる。
+    """
+
+    FIELDS = {
+        "Status": {"id": "F_st", "name": "Status", "dataType": "SINGLE_SELECT",
+                   "options": [{"id": "o2", "name": "Ready"}]},
+        "Sprint": {"id": "F_sp", "name": "Sprint", "dataType": "TEXT"},
+        "Start date": {"id": "F_sd", "name": "Start date", "dataType": "DATE"},
+        "Target date": {"id": "F_td", "name": "Target date", "dataType": "DATE"},
+    }
+
+    def setUp(self):
+        self.calls = []
+        self._saved = {name: getattr(sync_backlog, name)
+                       for name in ("run_gh", "fetch_project", "fetch_fields", "fetch_items")}
+
+        def fake_run_gh(args, dry_run=False, mutating=False, check=True):
+            self.calls.append(list(args))
+            return ""
+
+        sync_backlog.run_gh = fake_run_gh
+        sync_backlog.fetch_project = lambda owner, number: {
+            "id": "PVT_x", "title": "T", "url": "u"}
+        sync_backlog.fetch_fields = lambda pid: self.FIELDS
+        sync_backlog.fetch_items = lambda pid: {
+            9: {"id": "PVTI_9", "values": {"Status": "Ready", "Sprint": "Sprint 001",
+                                           "Start date": "2026-09-08",
+                                           "Target date": "2026-09-19"}}}
+
+    def tearDown(self):
+        for name, fn in self._saved.items():
+            setattr(sync_backlog, name, fn)
+
+    def _run(self, sprint_dates):
+        rows = [_row()]
+        issue_map = {"PBI-001": {"url": "https://github.com/o/r/issues/9", "number": 9}}
+        with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+            sync_project("o", 2, rows, issue_map, sprint_dates, dry_run=False)
+        return [c for c in self.calls if "item-edit" in c]
+
+    def test_placeholder_velocity_does_not_clear_dates(self):
+        edits = self._run({"sprint001": (None, None)})
+        self.assertEqual([], edits, "ひな形の velocity.csv で日付が編集されてはいけない")
+
+    def test_real_dates_are_written(self):
+        edits = self._run({"sprint001": ("2026-09-01", "2026-09-12")})
+        field_ids = [c[c.index("--field-id") + 1] for c in edits]
+        self.assertIn("F_sd", field_ids)
+        self.assertIn("F_td", field_ids)
+        self.assertNotIn("--clear", [tok for c in edits for tok in c])
+
+    def test_unassigned_sprint_clears_dates(self):
+        rows = [_row(sprint="")]
+        issue_map = {"PBI-001": {"url": "https://github.com/o/r/issues/9", "number": 9}}
+        with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+            sync_project("o", 2, rows, issue_map,
+                         {"sprint001": ("2026-09-01", "2026-09-12")}, dry_run=False)
+        edits = [c for c in self.calls if "item-edit" in c]
+        cleared = [c[c.index("--field-id") + 1] for c in edits if "--clear" in c]
+        self.assertIn("F_sd", cleared)
+        self.assertIn("F_td", cleared)
 
 
 if __name__ == "__main__":

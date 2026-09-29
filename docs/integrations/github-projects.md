@@ -12,7 +12,7 @@
 | Issue の粒度 | **PBI 単位のみ** | スプリントタスクは日次で変動するため Issue 化するとノイズになる |
 | PBI ↔ Issue の対応 | **Issue タイトルの `[PBI-XXX]` プレフィックス** | CSV の列構造を変更しない（`CLAUDE.md` の規約）ため、対応表を CSV にも外部ファイルにも持たない |
 
-**Projects 側で手動変更しても、次回同期でファイル側の値に上書きされます。** バックログの変更は
+**Projects 側で手動変更しても、次回同期でファイル側の値に上書きされます**（唯一の例外は上記の日付）。バックログの変更は
 `/backlog-refinement` や `/sprint-planning` などのスクラムイベントで行ってください。
 
 ## 同期される内容
@@ -29,9 +29,14 @@
 | Target date | date | `velocity.csv` の該当スプリントの `sprint_end` |
 
 **ロードマップ（ガント）にバーを出すには `velocity.csv` に実際の日付が必要です。** `sprint_start` /
-`sprint_end` が `YYYY-MM-DD` のひな形のままだと Start date / Target date は空のままになります。
+`sprint_end` が `YYYY-MM-DD` のひな形のままだと Start date / Target date は設定されません。
 `product_backlog.csv` の `sprint` 列と `velocity.csv` の `sprint` 列は表記が揺れていても照合されます
 （`Sprint 001` / `sprint001` / `sprint-1` はすべて同じスプリントとして扱われます）。
+
+日付だけは例外的に、**`velocity.csv` に情報が無いときは Project 側の値を消しません。** ひな形の
+`velocity.csv` は「まだ決まっていない」という意味であり「空であるべき」という指示ではないため、
+手で入れたロードマップの日付が失われないようにしています。PBI のスプリントを未割当に戻した場合は、
+明示的な指示なので日付もクリアされます。
 
 Issue 本文は `<!-- pbi-sync:begin -->` 〜 `<!-- pbi-sync:end -->` の間だけが自動生成されます。
 **マーカーの外に書いた人間のコメントは保持されます。**
