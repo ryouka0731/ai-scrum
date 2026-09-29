@@ -183,11 +183,36 @@ def load_sprint_dates():
     return dates
 
 
+class _Unknown(object):
+    """「元データに情報が無い」ことを表す番兵。空文字や None とは区別する。"""
+
+    def __repr__(self):
+        return "<不明>"
+
+
+UNKNOWN = _Unknown()
+
+
 def sprint_period(sprint_dates, sprint):
-    """スプリント名から (開始日, 終了日) を引く。表記揺れを吸収する。"""
+    """スプリント名から (開始日, 終了日) を引く。表記揺れを吸収する。
+
+    区別する 3 状態:
+      - スプリント未割当 → (None, None)。日付は明示的に空であるべきなので消してよい
+      - velocity.csv に該当行が無い / 日付がひな形 → (UNKNOWN, UNKNOWN)。
+        「まだ決まっていない」だけなので、Project 側の既存の値は触らない
+      - 開始日と終了日の両方が実日付 → (開始日, 終了日)
+
+    期間は開始と終了が揃って初めて意味を持つため、片方しか無い場合も
+    (UNKNOWN, UNKNOWN) とする。片方だけ書き込むと、Project 側では
+    CSV 由来の日付と手入力の古い日付が混ざった誤った期間になり、
+    Issue 本文では期間が「-」と表示されて両者が食い違う。
+    """
     if not sprint:
         return (None, None)
-    return sprint_dates.get(normalize_sprint(sprint), (None, None))
+    start, end = sprint_dates.get(normalize_sprint(sprint), (None, None))
+    if start and end:
+        return (start, end)
+    return (UNKNOWN, UNKNOWN)
 
 
 # --------------------------------------------------------------------------
@@ -229,7 +254,9 @@ def build_body_block(row, sprint_dates):
         ("サイズ（ストーリーポイント）", row.get("size") or "-"),
         ("ステータス", row.get("status") or "-"),
         ("スプリント", sprint or "未割当"),
-        ("期間", "%s 〜 %s" % (start, end) if start and end else "-"),
+        # UNKNOWN（velocity.csv に情報が無い）は truthy なので、日付文字列かどうかで判定する
+        ("期間", "%s 〜 %s" % (start, end)
+                 if isinstance(start, str) and isinstance(end, str) else "-"),
         ("作成日", row.get("created_at") or "-"),
         ("更新日", row.get("updated_at") or "-"),
     ]
@@ -725,6 +752,11 @@ def sync_project(owner, number, rows, issue_map, sprint_dates, dry_run):
         for name, value in desired_fields(row, sprint_dates).items():
             field = fields.get(name)
             if field is None:
+                continue
+            if value is UNKNOWN:
+                # 元データに情報が無いだけなので Project 側の値を消さない。
+                # ここで消すと、ひな形の velocity.csv があるだけで
+                # 手入力したロードマップの日付が失われる。
                 continue
             if same_value(item["values"].get(name), value, field.get("dataType")):
                 continue
