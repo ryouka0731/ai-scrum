@@ -109,8 +109,15 @@ scripts/github_project/bootstrap.sh --owner <owner> --no-link              # リ
 > 1. Project 画面で Status の選択肢を手で揃える（**値は保持されます**）
 > 2. 新しい Project を作ってそちらで実行する。`--number` を省略しただけでは**同じ `--title` の
 >    Project が再利用される**ため、既存と違う title を指定する
->    （`bootstrap.sh --owner <owner> --title "AI Scrum Board v2"`）
+>    （`scripts/github_project/bootstrap.sh --owner <owner> --title "AI Scrum Board v2"`）
 > 3. Status が消えてよいと分かっている場合のみ `--force-status-reset` を付ける
+>
+> **Status が消えた場合の復旧**: `product_backlog.csv` に残っている PBI の Status は、次回の同期で
+> CSV から再設定されます。復旧できないのは CSV に無い PBI（孤児）の分だけです。
+>
+> **既知の制限（競合）**: アイテム数の確認と選択肢の差し替えは別の API 呼び出しなので、その間に
+> アイテムが追加されると（同期ワークフローや他の人の操作）、ガードを通過したうえでその Status が
+> 消えます。現在の Projects V2 API では原子的に行えないため、この窓は残ります。
 
 ### 3. 手元から同期する
 
