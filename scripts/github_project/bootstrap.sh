@@ -252,7 +252,10 @@ Status の選択肢を差し替えると、選択肢 ID が作り直されるた
 対処のいずれかを選んでください:
   1. Project 画面で Status の選択肢を手で
      New / Ready / In Progress / Review / Done に揃える（値は保持されます）
-  2. 新しい Project を作ってそちらで実行する（--number を付けずに実行）
+  2. 新しい Project を作ってそちらで実行する
+     --number を省略しただけでは同じ title の Project が再利用されるため、
+     既存と違う title を指定する:
+       $0 --owner ${OWNER} --title "AI Scrum Board v2"
   3. Status が消えてよいと分かっている場合のみ:
        $0 --owner ${OWNER} --number ${NUMBER} --force-status-reset
 MSG

@@ -99,14 +99,17 @@ scripts/github_project/bootstrap.sh --owner <owner> --no-link              # リ
 > は選択肢を作り直すため選択肢 ID がすべて変わり、それを参照していた値が失われます（実測で確認）。
 > 元に戻せません。
 >
-> そのため本スクリプトは、**アイテムが 1 件以上ある Project では中断します**。選択肢が既に
-> New / Ready / In Progress / Review / Done に揃っている場合は何もせずスキップするので、
-> 設定済みの Project に対する再実行は安全です。
+> そのため本スクリプトは、**Status の選択肢が揃っておらず、かつアイテムが 1 件以上ある
+> Project では中断します**。選択肢が既に New / Ready / In Progress / Review / Done に
+> 揃っている場合は差し替えずスキップするため、設定済みの Project への再実行はアイテムが
+> あっても安全です。アイテム数が確認できなかった場合も、安全側に倒して中断します。
 >
 > 選択肢が揃っていないアイテム入りの Project を設定したい場合は、次のいずれかを選んでください。
 >
 > 1. Project 画面で Status の選択肢を手で揃える（**値は保持されます**）
-> 2. 新しい Project を作ってそちらで実行する（`--number` を付けずに実行）
+> 2. 新しい Project を作ってそちらで実行する。`--number` を省略しただけでは**同じ `--title` の
+>    Project が再利用される**ため、既存と違う title を指定する
+>    （`bootstrap.sh --owner <owner> --title "AI Scrum Board v2"`）
 > 3. Status が消えてよいと分かっている場合のみ `--force-status-reset` を付ける
 
 ### 3. 手元から同期する
