@@ -487,8 +487,10 @@ def report_orphan_issues(repo, rows, pbi_issues, close_orphans, dry_run):
         warn("  ! CSV に存在しない PBI の Issue が %d 件あります（うちオープン %d 件）"
              % (len(orphans), len(still_open)))
     else:
+        # 警告ではないが、直後の一覧と同じ stderr に出す。stdout に混ぜると
+        # stderr だけをログに流す環境でヘッダと一覧が別ストリームに分断される。
         print("  - CSV に存在しない PBI の Issue が %d 件ありますが、すべてクローズ済みです"
-              % len(orphans))
+              % len(orphans), file=sys.stderr)
     for pbi_id, issue in orphans:
         print("    - %s #%s %s (%s)"
               % (pbi_id, issue["number"], issue["title"], issue["state"]), file=sys.stderr)

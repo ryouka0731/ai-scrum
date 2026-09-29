@@ -358,9 +358,16 @@ class OrphanWarningLevelTest(unittest.TestCase):
         self.assertIn("うちオープン 1 件", out)
 
     def test_all_closed_orphans_emit_no_annotation(self):
-        out, _ = self._run(_pairs((10, "PBI-002", "CLOSED")))
+        out, err = self._run(_pairs((10, "PBI-002", "CLOSED")))
         self.assertNotIn("::warning::", out)
-        self.assertIn("すべてクローズ済みです", out)
+        self.assertIn("すべてクローズ済みです", err)
+
+    def test_closed_summary_and_list_share_one_stream(self):
+        # ヘッダだけ stdout に出すと、stderr だけをログに流す環境で分断される。
+        out, err = self._run(_pairs((10, "PBI-002", "CLOSED")))
+        self.assertIn("すべてクローズ済みです", err)
+        self.assertIn("#10", err)
+        self.assertEqual("", out)
 
     def test_closed_orphans_are_still_listed(self):
         # 警告しないだけで、一覧からは消さない（調査できる状態は保つ）。
