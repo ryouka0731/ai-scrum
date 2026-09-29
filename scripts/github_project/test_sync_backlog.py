@@ -12,7 +12,13 @@ import unittest
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from sync_backlog import find_orphan_issues, parse_github_origin_url  # noqa: E402
+import sync_backlog  # noqa: E402
+from sync_backlog import (  # noqa: E402
+    GhError,
+    find_orphan_issues,
+    parse_github_origin_url,
+    report_orphan_issues,
+)
 
 
 class ParseGithubOriginUrlTest(unittest.TestCase):
@@ -119,6 +125,76 @@ class FindOrphanIssuesTest(unittest.TestCase):
     def test_closed_orphans_are_still_reported(self):
         existing = {"PBI-002": _issue(10, "PBI-002", state="CLOSED")}
         self.assertEqual(1, len(find_orphan_issues([], existing)))
+
+
+class ReportOrphanIssuesTest(unittest.TestCase):
+    """クローズ失敗を握り潰さず、件数を返して報告することを確認する。"""
+
+    def setUp(self):
+        self.calls = []
+        self._real_run_gh = sync_backlog.run_gh
+
+    def tearDown(self):
+        sync_backlog.run_gh = self._real_run_gh
+
+    def _install(self, fail_on=()):
+        """gh 呼び出しを差し替える。fail_on に (サブコマンド, Issue番号) を渡すと失敗させる。"""
+        def fake_run_gh(args, dry_run=False, mutating=False, check=True):
+            key = (args[1], args[2])  # ("comment"|"close", "<番号>")
+            self.calls.append(key)
+            if key in fail_on:
+                # 本物の run_gh と同じく check=False なら例外を投げず空文字を返す。
+                # ここを模倣しないと check=False への退行を検出できない。
+                if not check:
+                    return ""
+                raise GhError("gh %s failed: boom" % args[1])
+            return ""
+        sync_backlog.run_gh = fake_run_gh
+
+    def test_close_failure_is_counted_and_others_continue(self):
+        self._install(fail_on=(("close", "10"),))
+        existing = {"PBI-002": _issue(10, "PBI-002"), "PBI-003": _issue(11, "PBI-003")}
+        failed = report_orphan_issues("o/r", [], existing, close_orphans=True, dry_run=False)
+        self.assertEqual(1, failed)
+        # #10 が失敗しても #11 の処理は続行される。
+        self.assertIn(("close", "11"), self.calls)
+
+    def test_all_success_returns_zero(self):
+        self._install()
+        existing = {"PBI-002": _issue(10, "PBI-002")}
+        failed = report_orphan_issues("o/r", [], existing, close_orphans=True, dry_run=False)
+        self.assertEqual(0, failed)
+        self.assertEqual([("comment", "10"), ("close", "10")], self.calls)
+
+    def test_comment_failure_skips_close(self):
+        # コメントできないまま閉じると理由不明の CLOSED が残るため、閉じない。
+        self._install(fail_on=(("comment", "10"),))
+        existing = {"PBI-002": _issue(10, "PBI-002")}
+        failed = report_orphan_issues("o/r", [], existing, close_orphans=True, dry_run=False)
+        self.assertEqual(1, failed)
+        self.assertNotIn(("close", "10"), self.calls)
+
+    def test_warn_only_mode_calls_no_gh_and_returns_zero(self):
+        self._install()
+        existing = {"PBI-002": _issue(10, "PBI-002")}
+        failed = report_orphan_issues("o/r", [], existing, close_orphans=False, dry_run=False)
+        self.assertEqual(0, failed)
+        self.assertEqual([], self.calls)
+
+    def test_closed_orphan_is_not_reclosed(self):
+        self._install()
+        existing = {"PBI-002": _issue(10, "PBI-002", state="CLOSED")}
+        failed = report_orphan_issues("o/r", [], existing, close_orphans=True, dry_run=False)
+        self.assertEqual(0, failed)
+        self.assertEqual([], self.calls)
+
+    def test_no_orphans_returns_zero(self):
+        self._install()
+        rows = [{"id": "PBI-002"}]
+        existing = {"PBI-002": _issue(10, "PBI-002")}
+        failed = report_orphan_issues("o/r", rows, existing, close_orphans=True, dry_run=False)
+        self.assertEqual(0, failed)
+        self.assertEqual([], self.calls)
 
 
 if __name__ == "__main__":

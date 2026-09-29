@@ -394,7 +394,10 @@ def find_orphan_issues(rows, existing):
 
 
 def report_orphan_issues(repo, rows, existing, close_orphans, dry_run):
-    """孤児 Issue を警告し、--close-orphans 指定時はクローズする。削除は行わない。"""
+    """孤児 Issue を警告し、--close-orphans 指定時はクローズする。削除は行わない。
+
+    戻り値はクローズに失敗した件数。呼び出し側は終了コードに反映する。
+    """
     orphans = find_orphan_issues(rows, existing)
     if not orphans:
         return 0
@@ -410,15 +413,29 @@ def report_orphan_issues(repo, rows, existing, close_orphans, dry_run):
         if still_open:
             print("  ! クローズするには --close-orphans を付けて再実行してください（削除はしません）",
                   file=sys.stderr)
-        return len(orphans)
+        # 孤児が存在するだけでは失敗扱いにしない（警告のみ）。
+        # ここで 0 以外を返すと孤児がある間ずっと同期ワークフローが落ちる。
+        return 0
 
+    failed = 0
     for pbi_id, issue in still_open:
         print("  x 孤児 Issue をクローズ: #%s %s" % (issue["number"], pbi_id))
-        run_gh(["issue", "comment", str(issue["number"]), "--repo", repo,
-                "--body", ORPHAN_COMMENT], dry_run=dry_run, mutating=True, check=False)
-        run_gh(["issue", "close", str(issue["number"]), "--repo", repo,
-                "--reason", "not planned"], dry_run=dry_run, mutating=True, check=False)
-    return len(orphans)
+        # 失敗を握り潰すとクローズできていないのに成功扱いになるため、
+        # Issue ごとに捕捉して報告し、残りの処理は続行する。
+        try:
+            run_gh(["issue", "comment", str(issue["number"]), "--repo", repo,
+                    "--body", ORPHAN_COMMENT], dry_run=dry_run, mutating=True)
+            run_gh(["issue", "close", str(issue["number"]), "--repo", repo,
+                    "--reason", "not planned"], dry_run=dry_run, mutating=True)
+        except GhError as exc:
+            failed += 1
+            print("  ! #%s のクローズに失敗しました: %s" % (issue["number"], exc),
+                  file=sys.stderr)
+
+    if failed:
+        print("  ! 孤児 Issue %d 件をクローズできませんでした（次回同期で再度警告されます）"
+              % failed, file=sys.stderr)
+    return failed
 
 
 # --------------------------------------------------------------------------
@@ -748,16 +765,19 @@ def main(argv=None):
 
     if not rows:
         print("同期対象の PBI がありません（CSV がひな形のみ）。")
-        report_orphan_issues(repo, rows, existing_issues, args.close_orphans, args.dry_run)
+        if report_orphan_issues(repo, rows, existing_issues,
+                                args.close_orphans, args.dry_run):
+            return 1
         return 0
 
     print("[1/2] Issue 同期")
     issue_map = sync_issues(repo, rows, sprint_dates, args.dry_run, existing=existing_issues)
-    report_orphan_issues(repo, rows, existing_issues, args.close_orphans, args.dry_run)
+    orphan_failures = report_orphan_issues(repo, rows, existing_issues,
+                                           args.close_orphans, args.dry_run)
 
     if args.issues_only or not args.project_number:
         print("[2/2] Project 同期: スキップ（--project-number 未指定）")
-        return 0
+        return 1 if orphan_failures else 0
 
     print("[2/2] Project 同期")
     try:
@@ -765,7 +785,7 @@ def main(argv=None):
     except GhError as exc:
         print("エラー: %s" % exc, file=sys.stderr)
         return 1
-    return 0
+    return 1 if orphan_failures else 0
 
 
 if __name__ == "__main__":
