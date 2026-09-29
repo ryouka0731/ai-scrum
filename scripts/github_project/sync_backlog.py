@@ -316,9 +316,10 @@ def ensure_label(repo, dry_run):
     return available
 
 
-def sync_issues(repo, rows, sprint_dates, dry_run):
+def sync_issues(repo, rows, sprint_dates, dry_run, existing=None):
     """CSV の各 PBI について Issue を作成／更新し、id -> issue url/number を返す。"""
-    existing = fetch_pbi_issues(repo)
+    if existing is None:
+        existing = fetch_pbi_issues(repo)
     label_args = ["--label", PBI_LABEL] if ensure_label(repo, dry_run) else []
     result = {}
     created = updated = closed = reopened = unchanged = 0
@@ -376,6 +377,48 @@ def sync_issues(repo, rows, sprint_dates, dry_run):
     print("  Issue: 作成 %d / 更新 %d / クローズ %d / 再オープン %d / 変更なし %d"
           % (created, updated, closed, reopened, unchanged))
     return result
+
+
+ORPHAN_COMMENT = (
+    "この PBI は `scrum/product_backlog.csv` / `product_backlog_done.csv` から削除されたため、"
+    "`scripts/github_project/sync_backlog.py --close-orphans` によってクローズされました。\n\n"
+    "再開する場合は CSV に PBI を戻してから同期してください（この Issue が再オープンされます）。"
+)
+
+
+def find_orphan_issues(rows, existing):
+    """CSV に存在しない PBI の Issue（= 孤児）を番号順に返す。"""
+    known = set(row["id"] for row in rows)
+    orphans = [(pbi_id, issue) for pbi_id, issue in existing.items() if pbi_id not in known]
+    return sorted(orphans, key=lambda pair: pair[1]["number"])
+
+
+def report_orphan_issues(repo, rows, existing, close_orphans, dry_run):
+    """孤児 Issue を警告し、--close-orphans 指定時はクローズする。削除は行わない。"""
+    orphans = find_orphan_issues(rows, existing)
+    if not orphans:
+        return 0
+
+    still_open = [(pbi_id, issue) for pbi_id, issue in orphans if issue["state"] == "OPEN"]
+    print("  ! CSV に存在しない PBI の Issue が %d 件あります（うちオープン %d 件）"
+          % (len(orphans), len(still_open)), file=sys.stderr)
+    for pbi_id, issue in orphans:
+        print("    - %s #%s %s (%s)"
+              % (pbi_id, issue["number"], issue["title"], issue["state"]), file=sys.stderr)
+
+    if not close_orphans:
+        if still_open:
+            print("  ! クローズするには --close-orphans を付けて再実行してください（削除はしません）",
+                  file=sys.stderr)
+        return len(orphans)
+
+    for pbi_id, issue in still_open:
+        print("  x 孤児 Issue をクローズ: #%s %s" % (issue["number"], pbi_id))
+        run_gh(["issue", "comment", str(issue["number"]), "--repo", repo,
+                "--body", ORPHAN_COMMENT], dry_run=dry_run, mutating=True, check=False)
+        run_gh(["issue", "close", str(issue["number"]), "--repo", repo,
+                "--reason", "not planned"], dry_run=dry_run, mutating=True, check=False)
+    return len(orphans)
 
 
 # --------------------------------------------------------------------------
@@ -679,6 +722,8 @@ def main(argv=None):
                         help="Projects V2 の番号。省略時は環境変数 SCRUM_PROJECT_NUMBER"
                              "（未設定なら 0 = Project 同期をスキップ）")
     parser.add_argument("--issues-only", action="store_true", help="Issue のみ同期する")
+    parser.add_argument("--close-orphans", action="store_true",
+                        help="CSV から削除された PBI の Issue をクローズする（削除はしない）")
     parser.add_argument("--dry-run", action="store_true", help="変更を行わず実行内容だけ表示する")
     args = parser.parse_args(argv)
 
@@ -698,12 +743,17 @@ def main(argv=None):
 
     print("リポジトリ: %s" % repo)
     print("同期対象 PBI: %d 件%s" % (len(rows), "（dry-run）" if args.dry_run else ""))
+
+    existing_issues = fetch_pbi_issues(repo)
+
     if not rows:
-        print("同期対象の PBI がありません（CSV がひな形のみ）。終了します。")
+        print("同期対象の PBI がありません（CSV がひな形のみ）。")
+        report_orphan_issues(repo, rows, existing_issues, args.close_orphans, args.dry_run)
         return 0
 
     print("[1/2] Issue 同期")
-    issue_map = sync_issues(repo, rows, sprint_dates, args.dry_run)
+    issue_map = sync_issues(repo, rows, sprint_dates, args.dry_run, existing=existing_issues)
+    report_orphan_issues(repo, rows, existing_issues, args.close_orphans, args.dry_run)
 
     if args.issues_only or not args.project_number:
         print("[2/2] Project 同期: スキップ（--project-number 未指定）")
