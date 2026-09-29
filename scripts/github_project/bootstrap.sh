@@ -21,8 +21,10 @@
 #
 # Projects V2 はユーザー / Organization 所有のため、リポジトリの Projects タブに
 # 出すには明示的なリンクが必要。既定では現在のリポジトリに自動でリンクする。
-#   --repo <owner/name>   リンク先のリポジトリを指定する
-#   --no-link             リンクしない
+#   --repo <owner/name>       リンク先のリポジトリを指定する
+#   --no-link                 リンクしない
+#   --force-status-reset      アイテム入り Project でも Status の選択肢を差し替える
+#                             （全アイテムの Status が空になる。元に戻せない）
 set -euo pipefail
 
 OWNER=""
@@ -41,7 +43,8 @@ while [[ $# -gt 0 ]]; do
     --repo)    REPO="${2:-}"; shift 2 ;;
     --no-link) NO_LINK="1"; shift ;;
     --force-status-reset) FORCE_STATUS="1"; shift ;;
-    -h|--help) sed -n '2,21p' "$0"; exit 0 ;;
+    # 固定行範囲だとヘッダが伸びた時点で黙って切れるため、先頭のコメント塊を全部出す
+    -h|--help) awk 'NR>1 && /^#/ {print; next} NR>1 {exit}' "$0"; exit 0 ;;
     *) echo "不明な引数: $1" >&2; exit 2 ;;
   esac
 done
@@ -201,8 +204,10 @@ for f in fields:
 }
 
 project_item_count() {
+  # 失敗時は何も出力しない。呼び出し側が「不明」として扱えるようにするため、
+  # ここで 0 を返してはいけない（0 だとガードが通って破壊的操作が走る）。
   gh api graphql -f query='query($id: ID!) { node(id: $id) { ... on ProjectV2 { items { totalCount } } } }' \
-    -F id="$PROJECT_ID" --jq '.data.node.items.totalCount' 2>/dev/null || echo 0
+    -F id="$PROJECT_ID" --jq '.data.node.items.totalCount' 2>/dev/null
 }
 
 # ------------------------------------------------------- Status の選択肢を差し替え
@@ -214,8 +219,27 @@ elif [[ -n "$STATUS_ID" ]]; then
   # updateProjectV2Field は選択肢を作り直すため、既存の選択肢 ID がすべて変わり、
   # それを参照していたアイテムの Status は必ず空になる（実測で確認済み）。
   # アイテムが入った Project では黙って壊さず、明示的な指定を要求する。
-  ITEM_COUNT="$(project_item_count)"
+  ITEM_COUNT="$(project_item_count || true)"
   if [[ ! "$ITEM_COUNT" =~ ^[0-9]+$ ]]; then
+    # 件数が確認できないときは安全側に倒して中断する。API の一時的な失敗で
+    # 破壊的操作が走るのを防ぐ（ガードは fail-closed でなければ意味がない）。
+    if [[ -z "$FORCE_STATUS" ]]; then
+      cat >&2 <<MSG
+エラー: Project #${NUMBER} のアイテム数を確認できませんでした。
+
+Status の選択肢を差し替えると全アイテムの Status が空になるため、
+件数が不明なまま実行しません。時間をおいて再実行してください。
+
+認証やネットワークを確認する:
+  gh auth status
+  gh project view ${NUMBER} --owner ${OWNER}
+
+件数を確認できなくても実行してよい場合のみ:
+  $0 --owner ${OWNER} --number ${NUMBER} --force-status-reset
+MSG
+      exit 1
+    fi
+    echo "==> ! アイテム数を確認できませんでしたが --force-status-reset のため続行します" >&2
     ITEM_COUNT=0
   fi
   if [[ "$ITEM_COUNT" -gt 0 && -z "$FORCE_STATUS" ]]; then
