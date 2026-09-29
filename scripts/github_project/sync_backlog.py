@@ -200,12 +200,19 @@ def sprint_period(sprint_dates, sprint):
       - スプリント未割当 → (None, None)。日付は明示的に空であるべきなので消してよい
       - velocity.csv に該当行が無い / 日付がひな形 → (UNKNOWN, UNKNOWN)。
         「まだ決まっていない」だけなので、Project 側の既存の値は触らない
-      - 実日付あり → (開始日, 終了日)
+      - 開始日と終了日の両方が実日付 → (開始日, 終了日)
+
+    期間は開始と終了が揃って初めて意味を持つため、片方しか無い場合も
+    (UNKNOWN, UNKNOWN) とする。片方だけ書き込むと、Project 側では
+    CSV 由来の日付と手入力の古い日付が混ざった誤った期間になり、
+    Issue 本文では期間が「-」と表示されて両者が食い違う。
     """
     if not sprint:
         return (None, None)
     start, end = sprint_dates.get(normalize_sprint(sprint), (None, None))
-    return (start if start else UNKNOWN, end if end else UNKNOWN)
+    if start and end:
+        return (start, end)
+    return (UNKNOWN, UNKNOWN)
 
 
 # --------------------------------------------------------------------------

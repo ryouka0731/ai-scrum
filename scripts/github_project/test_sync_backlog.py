@@ -420,6 +420,16 @@ class SprintPeriodTest(unittest.TestCase):
     def test_sprint_missing_from_velocity_is_unknown(self):
         self.assertEqual((UNKNOWN, UNKNOWN), sprint_period({}, "Sprint 001"))
 
+    def test_only_start_date_is_unknown(self):
+        # 片方だけ書き込むと Project は CSV 由来と手入力の混在、
+        # Issue 本文は「-」となり両者が食い違う。期間は原子的に扱う。
+        self.assertEqual((UNKNOWN, UNKNOWN),
+                         sprint_period({"sprint001": ("2026-09-01", None)}, "Sprint 001"))
+
+    def test_only_end_date_is_unknown(self):
+        self.assertEqual((UNKNOWN, UNKNOWN),
+                         sprint_period({"sprint001": (None, "2026-09-12")}, "Sprint 001"))
+
     def test_desired_fields_marks_dates_unknown(self):
         f = desired_fields(_row(), {"sprint001": (None, None)})
         self.assertIs(UNKNOWN, f["Start date"])
@@ -495,6 +505,11 @@ class SyncProjectDateGuardTest(unittest.TestCase):
     def test_placeholder_velocity_does_not_clear_dates(self):
         edits = self._run({"sprint001": (None, None)})
         self.assertEqual([], edits, "ひな形の velocity.csv で日付が編集されてはいけない")
+
+    def test_partial_velocity_row_writes_no_date(self):
+        # 開始日だけある行で Start date が単独更新されないこと。
+        edits = self._run({"sprint001": ("2026-09-01", None)})
+        self.assertEqual([], edits)
 
     def test_real_dates_are_written(self):
         edits = self._run({"sprint001": ("2026-09-01", "2026-09-12")})
