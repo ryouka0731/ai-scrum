@@ -57,6 +57,19 @@ class GhError(RuntimeError):
     pass
 
 
+def warn(message):
+    """警告を出す。GitHub Actions 上では注釈にして実行サマリに表示させる。
+
+    プレーンな stderr だとログを開かないと気付けない。孤児の見落としを防ぐのが
+    この機能の目的なので、Actions では ::warning:: を使う。
+    """
+    if os.environ.get("GITHUB_ACTIONS") == "true":
+        # 注釈は 1 行しか表示されないため改行と連続空白を畳む
+        print("::warning::" + " ".join(message.split()))
+    else:
+        print(message, file=sys.stderr)
+
+
 def run_gh(args, dry_run=False, mutating=False, check=True):
     """gh を実行して stdout を返す。dry_run 時は変更系コマンドを実行しない。"""
     cmd = ["gh"] + args
@@ -467,16 +480,22 @@ def report_orphan_issues(repo, rows, pbi_issues, close_orphans, dry_run):
         return 0
 
     still_open = [(pbi_id, issue) for pbi_id, issue in orphans if issue["state"] == "OPEN"]
-    print("  ! CSV に存在しない PBI の Issue が %d 件あります（うちオープン %d 件）"
-          % (len(orphans), len(still_open)), file=sys.stderr)
+
+    # クローズ済みの孤児は「対処済み」なので警告しない。毎回警告すると
+    # --close-orphans で畳んでも警告が鳴り続け、注釈が恒久ノイズになる。
+    if still_open:
+        warn("  ! CSV に存在しない PBI の Issue が %d 件あります（うちオープン %d 件）"
+             % (len(orphans), len(still_open)))
+    else:
+        print("  - CSV に存在しない PBI の Issue が %d 件ありますが、すべてクローズ済みです"
+              % len(orphans))
     for pbi_id, issue in orphans:
         print("    - %s #%s %s (%s)"
               % (pbi_id, issue["number"], issue["title"], issue["state"]), file=sys.stderr)
 
     if not close_orphans:
         if still_open:
-            print("  ! クローズするには --close-orphans を付けて再実行してください（削除はしません）",
-                  file=sys.stderr)
+            warn("  ! クローズするには --close-orphans を付けて再実行してください（削除はしません）")
         # 孤児が存在するだけでは失敗扱いにしない（警告のみ）。
         # ここで 0 以外を返すと孤児がある間ずっと同期ワークフローが落ちる。
         return 0
@@ -501,8 +520,8 @@ def report_orphan_issues(repo, rows, pbi_issues, close_orphans, dry_run):
                   file=sys.stderr)
 
     if failed:
-        print("  ! 孤児 Issue %d 件をクローズできませんでした（次回同期で再度警告されます）"
-              % failed, file=sys.stderr)
+        warn("  ! 孤児 Issue %d 件をクローズできませんでした（次回同期で再度警告されます）"
+             % failed)
     return failed
 
 

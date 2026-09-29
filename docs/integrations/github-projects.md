@@ -45,6 +45,8 @@ Issue 本文は `<!-- pbi-sync:begin -->` 〜 `<!-- pbi-sync:end -->` の間だ�
 クローズするには `--close-orphans` を付けます。削除は一切しません。
 クローズ前に理由コメントを投稿し、失敗した Issue は次回も警告されます。再実行しても同じコメントは二重投稿されません。
 
+警告が出るのは**オープンな孤児があるときだけ**です。クローズ済みの孤児は一覧には出ますが警告になりません（畳んだあとも鳴り続けるのを避けるため）。GitHub Actions 上では警告は`::warning::` 注釈になり、実行サマリに表示されます。
+
 ```bash
 python3 scripts/github_project/sync_backlog.py --close-orphans --dry-run   # 対象を確認
 python3 scripts/github_project/sync_backlog.py --close-orphans            # クローズ
