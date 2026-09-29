@@ -253,7 +253,11 @@ def merge_body(existing, block):
 # --------------------------------------------------------------------------
 
 def fetch_pbi_issues(repo):
-    """[PBI-XXX] で始まる Issue を取得して id -> issue の辞書にする。
+    """[PBI-XXX] で始まる Issue を取得して (代表 Issue の辞書, 全 Issue のペア一覧) を返す。
+
+    辞書は PBI ID -> Issue で、同じ PBI に複数の Issue があるときは番号が最小のものだけを
+    採用する（同期先を 1 つに定めるため）。ペア一覧は (PBI ID, Issue) を重複も含めて
+    すべて含む。孤児検出は重複側の Issue も閉じる必要があるため、こちらを使う。
 
     件数上限で打ち切ると既存 Issue を新規と誤認して重複作成してしまうため、
     REST を --paginate で全ページ走査する。
@@ -280,18 +284,20 @@ def fetch_pbi_issues(repo):
         issue["state"] = (issue.get("state") or "").upper()
         issue["body"] = issue.get("body") or ""
     issues = {}
+    all_pairs = []
     for issue in data:
         m = PBI_TITLE_RE.match(issue.get("title", ""))
         if not m:
             continue
         pbi_id = m.group(1)
+        all_pairs.append((pbi_id, issue))
         if pbi_id in issues:
             print("  ! %s に対応する Issue が複数あります (#%s と #%s)。番号の小さい方を使います"
                   % (pbi_id, issues[pbi_id]["number"], issue["number"]), file=sys.stderr)
             if issue["number"] > issues[pbi_id]["number"]:
                 continue
         issues[pbi_id] = issue
-    return issues
+    return issues, all_pairs
 
 
 def ensure_label(repo, dry_run):
@@ -316,9 +322,10 @@ def ensure_label(repo, dry_run):
     return available
 
 
-def sync_issues(repo, rows, sprint_dates, dry_run):
+def sync_issues(repo, rows, sprint_dates, dry_run, existing=None):
     """CSV の各 PBI について Issue を作成／更新し、id -> issue url/number を返す。"""
-    existing = fetch_pbi_issues(repo)
+    if existing is None:
+        existing, _ = fetch_pbi_issues(repo)
     label_args = ["--label", PBI_LABEL] if ensure_label(repo, dry_run) else []
     result = {}
     created = updated = closed = reopened = unchanged = 0
@@ -376,6 +383,127 @@ def sync_issues(repo, rows, sprint_dates, dry_run):
     print("  Issue: 作成 %d / 更新 %d / クローズ %d / 再オープン %d / 変更なし %d"
           % (created, updated, closed, reopened, unchanged))
     return result
+
+
+# コメント本文に埋め込む目印。再実行時に同じコメントを二重投稿しないために使う。
+ORPHAN_MARKER = "<!-- pbi-sync:orphan -->"
+
+# 文面は「クローズした」と断定しない。コメント投稿の時点ではまだクローズしていないため、
+# クローズに失敗するとオープンな Issue に嘘が残ってしまう。
+ORPHAN_COMMENT = (
+    ORPHAN_MARKER + "\n"
+    "この PBI は `scrum/product_backlog.csv` / `scrum/product_backlog_done.csv` に存在しません。"
+    "`scripts/github_project/sync_backlog.py --close-orphans` により、"
+    "この Issue をクローズ対象として処理します。\n\n"
+    "再開する場合は CSV に PBI を戻してから同期してください"
+    "（`status` が未完了の PBI であれば、この Issue が再オープンされます）。"
+)
+
+# 重複 Issue 用の文面。sync_issues が再オープンするのは PBI ごとの代表 Issue
+# （番号が最小のもの）だけなので、重複側に「戻せば再オープンされる」と書くと嘘になる。
+# 重複を再オープンすると 1 つの PBI にオープンな Issue が 2 つできてしまうため、
+# 再オープンしないこと自体は意図した挙動である。
+ORPHAN_DUPLICATE_COMMENT = (
+    ORPHAN_MARKER + "\n"
+    "この Issue は %(pbi_id)s の重複です（同期対象は #%(primary)d）。"
+    "%(pbi_id)s が `scrum/product_backlog.csv` / `scrum/product_backlog_done.csv` に"
+    "存在しないため、`sync_backlog.py --close-orphans` によりクローズ対象として処理します。\n\n"
+    "CSV に %(pbi_id)s を戻した場合、再オープンされるのは #%(primary)d だけです。"
+    "**この Issue はクローズのままになります。**"
+)
+
+
+def primary_issue_numbers(pbi_issues):
+    """PBI ごとの代表 Issue 番号を返す。fetch_pbi_issues の選び方（最小番号）に合わせる。"""
+    primary = {}
+    for pbi_id, issue in pbi_issues:
+        number = issue["number"]
+        if pbi_id not in primary or number < primary[pbi_id]:
+            primary[pbi_id] = number
+    return primary
+
+
+def orphan_comment_body(pbi_id, issue, primary):
+    """孤児 Issue に投稿する本文を返す。重複側には実際の挙動に合った文面を使う。"""
+    primary_number = primary.get(pbi_id)
+    if primary_number is not None and issue["number"] != primary_number:
+        return ORPHAN_DUPLICATE_COMMENT % {"pbi_id": pbi_id, "primary": primary_number}
+    return ORPHAN_COMMENT
+
+
+def has_orphan_comment(repo, number):
+    """孤児クローズのコメントを既に投稿済みかを返す。
+
+    --close-orphans の再実行（前回クローズに失敗した場合など）で同じコメントが
+    積み重なるのを防ぐ。判定できないときは False を返し、投稿を試みる。
+    """
+    try:
+        out = run_gh(["api", "--paginate", "-X", "GET",
+                      "repos/%s/issues/%s/comments" % (repo, number),
+                      "-f", "per_page=100", "--jq", ".[].body"])
+    except GhError:
+        return False
+    return ORPHAN_MARKER in out
+
+
+def find_orphan_issues(rows, pbi_issues):
+    """CSV に存在しない PBI の Issue（= 孤児）を Issue 番号順に返す。
+
+    pbi_issues は fetch_pbi_issues が返す (PBI ID, Issue) のペア一覧。代表 Issue の辞書を
+    渡すと同じ PBI の重複 Issue を取りこぼすため、必ずペア一覧を渡す。
+    """
+    known = set(row["id"] for row in rows)
+    orphans = [(pbi_id, issue) for pbi_id, issue in pbi_issues if pbi_id not in known]
+    return sorted(orphans, key=lambda pair: pair[1]["number"])
+
+
+def report_orphan_issues(repo, rows, pbi_issues, close_orphans, dry_run):
+    """孤児 Issue を警告し、--close-orphans 指定時はクローズする。削除は行わない。
+
+    戻り値はクローズに失敗した件数。呼び出し側は終了コードに反映する。
+    """
+    orphans = find_orphan_issues(rows, pbi_issues)
+    if not orphans:
+        return 0
+
+    still_open = [(pbi_id, issue) for pbi_id, issue in orphans if issue["state"] == "OPEN"]
+    print("  ! CSV に存在しない PBI の Issue が %d 件あります（うちオープン %d 件）"
+          % (len(orphans), len(still_open)), file=sys.stderr)
+    for pbi_id, issue in orphans:
+        print("    - %s #%s %s (%s)"
+              % (pbi_id, issue["number"], issue["title"], issue["state"]), file=sys.stderr)
+
+    if not close_orphans:
+        if still_open:
+            print("  ! クローズするには --close-orphans を付けて再実行してください（削除はしません）",
+                  file=sys.stderr)
+        # 孤児が存在するだけでは失敗扱いにしない（警告のみ）。
+        # ここで 0 以外を返すと孤児がある間ずっと同期ワークフローが落ちる。
+        return 0
+
+    failed = 0
+    primary = primary_issue_numbers(pbi_issues)
+    for pbi_id, issue in still_open:
+        print("  x 孤児 Issue をクローズ: #%s %s" % (issue["number"], pbi_id))
+        # 失敗を握り潰すとクローズできていないのに成功扱いになるため、
+        # Issue ごとに捕捉して報告し、残りの処理は続行する。
+        try:
+            # dry-run では投稿済み判定の API も叩かない（表示だけを行う）。
+            if dry_run or not has_orphan_comment(repo, issue["number"]):
+                run_gh(["issue", "comment", str(issue["number"]), "--repo", repo,
+                        "--body", orphan_comment_body(pbi_id, issue, primary)],
+                       dry_run=dry_run, mutating=True)
+            run_gh(["issue", "close", str(issue["number"]), "--repo", repo,
+                    "--reason", "not planned"], dry_run=dry_run, mutating=True)
+        except GhError as exc:
+            failed += 1
+            print("  ! #%s のクローズに失敗しました: %s" % (issue["number"], exc),
+                  file=sys.stderr)
+
+    if failed:
+        print("  ! 孤児 Issue %d 件をクローズできませんでした（次回同期で再度警告されます）"
+              % failed, file=sys.stderr)
+    return failed
 
 
 # --------------------------------------------------------------------------
@@ -679,6 +807,8 @@ def main(argv=None):
                         help="Projects V2 の番号。省略時は環境変数 SCRUM_PROJECT_NUMBER"
                              "（未設定なら 0 = Project 同期をスキップ）")
     parser.add_argument("--issues-only", action="store_true", help="Issue のみ同期する")
+    parser.add_argument("--close-orphans", action="store_true",
+                        help="CSV から削除された PBI の Issue をクローズする（削除はしない）")
     parser.add_argument("--dry-run", action="store_true", help="変更を行わず実行内容だけ表示する")
     args = parser.parse_args(argv)
 
@@ -698,16 +828,24 @@ def main(argv=None):
 
     print("リポジトリ: %s" % repo)
     print("同期対象 PBI: %d 件%s" % (len(rows), "（dry-run）" if args.dry_run else ""))
+
+    existing_issues, all_pbi_issues = fetch_pbi_issues(repo)
+
     if not rows:
-        print("同期対象の PBI がありません（CSV がひな形のみ）。終了します。")
+        print("同期対象の PBI がありません（CSV がひな形のみ）。")
+        if report_orphan_issues(repo, rows, all_pbi_issues,
+                                args.close_orphans, args.dry_run):
+            return 1
         return 0
 
     print("[1/2] Issue 同期")
-    issue_map = sync_issues(repo, rows, sprint_dates, args.dry_run)
+    issue_map = sync_issues(repo, rows, sprint_dates, args.dry_run, existing=existing_issues)
+    orphan_failures = report_orphan_issues(repo, rows, all_pbi_issues,
+                                           args.close_orphans, args.dry_run)
 
     if args.issues_only or not args.project_number:
         print("[2/2] Project 同期: スキップ（--project-number 未指定）")
-        return 0
+        return 1 if orphan_failures else 0
 
     print("[2/2] Project 同期")
     try:
@@ -715,7 +853,7 @@ def main(argv=None):
     except GhError as exc:
         print("エラー: %s" % exc, file=sys.stderr)
         return 1
-    return 0
+    return 1 if orphan_failures else 0
 
 
 if __name__ == "__main__":
