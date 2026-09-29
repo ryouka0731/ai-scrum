@@ -6,6 +6,8 @@
   # または scripts/github_project/ 内で:
   python3 -m unittest test_sync_backlog -v
 """
+import contextlib
+import io
 import os
 import sys
 import unittest
@@ -21,6 +23,7 @@ from sync_backlog import (  # noqa: E402
     orphan_comment_body,
     primary_issue_numbers,
     report_orphan_issues,
+    warn,
 )
 
 
@@ -308,6 +311,73 @@ class OrphanCommentBodyTest(unittest.TestCase):
         pairs = _pairs((20, "PBI-002"))
         body = orphan_comment_body("PBI-002", pairs[0][1], primary_issue_numbers(pairs))
         self.assertEqual(sync_backlog.ORPHAN_COMMENT, body)
+
+
+class WarnTest(unittest.TestCase):
+    """GitHub Actions 上では注釈として出し、それ以外では stderr に出すことを確認する。"""
+
+    def _capture(self, env, message):
+        out, err = io.StringIO(), io.StringIO()
+        with mock.patch.dict(os.environ, env, clear=False):
+            with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+                warn(message)
+        return out.getvalue(), err.getvalue()
+
+    def test_emits_annotation_on_github_actions(self):
+        out, err = self._capture({"GITHUB_ACTIONS": "true"}, "  ! 孤児が 2 件")
+        self.assertEqual("::warning::! 孤児が 2 件\n", out)
+        self.assertEqual("", err)
+
+    def test_collapses_newlines_for_annotation(self):
+        # 注釈は 1 行しか表示されないため、改行が残ると 2 行目が消える。
+        out, _ = self._capture({"GITHUB_ACTIONS": "true"}, "1 行目\n2 行目")
+        self.assertEqual("::warning::1 行目 2 行目\n", out)
+
+    def test_emits_stderr_outside_github_actions(self):
+        out, err = self._capture({"GITHUB_ACTIONS": ""}, "  ! 孤児が 2 件")
+        self.assertEqual("", out)
+        self.assertEqual("  ! 孤児が 2 件\n", err)
+
+
+class OrphanWarningLevelTest(unittest.TestCase):
+    """クローズ済みだけの孤児では警告を出さないことを確認する。
+
+    毎回警告すると --close-orphans で畳んでも鳴り続け、注釈が恒久ノイズになる。
+    """
+
+    def _run(self, pairs):
+        out, err = io.StringIO(), io.StringIO()
+        with mock.patch.dict(os.environ, {"GITHUB_ACTIONS": "true"}, clear=False):
+            with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+                report_orphan_issues("o/r", [], pairs, close_orphans=False, dry_run=False)
+        return out.getvalue(), err.getvalue()
+
+    def test_open_orphan_emits_annotation(self):
+        out, _ = self._run(_pairs((10, "PBI-002")))
+        self.assertIn("::warning::", out)
+        self.assertIn("うちオープン 1 件", out)
+
+    def test_all_closed_orphans_emit_no_annotation(self):
+        out, err = self._run(_pairs((10, "PBI-002", "CLOSED")))
+        self.assertNotIn("::warning::", out)
+        self.assertIn("すべてクローズ済みです", err)
+
+    def test_closed_summary_and_list_share_one_stream(self):
+        # ヘッダだけ stdout に出すと、stderr だけをログに流す環境で分断される。
+        out, err = self._run(_pairs((10, "PBI-002", "CLOSED")))
+        self.assertIn("すべてクローズ済みです", err)
+        self.assertIn("#10", err)
+        self.assertEqual("", out)
+
+    def test_closed_orphans_are_still_listed(self):
+        # 警告しないだけで、一覧からは消さない（調査できる状態は保つ）。
+        _, err = self._run(_pairs((10, "PBI-002", "CLOSED")))
+        self.assertIn("#10", err)
+
+    def test_mixed_states_emit_annotation(self):
+        out, _ = self._run(_pairs((10, "PBI-002", "CLOSED"), (11, "PBI-003")))
+        self.assertIn("::warning::", out)
+        self.assertIn("2 件あります（うちオープン 1 件）", out)
 
 
 if __name__ == "__main__":
