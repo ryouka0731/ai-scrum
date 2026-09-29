@@ -11,6 +11,10 @@
 #
 # 必要スコープ: gh auth refresh -s project
 #
+# 注意: アイテムが入った Project で Status の選択肢を差し替えると、選択肢 ID が
+#       作り直されるため全アイテムの Status が必ず空になる（実測で確認）。
+#       そのため本スクリプトはアイテムがある場合に中断し、--force-status-reset を要求する。
+#
 # 使い方:
 #   scripts/github_project/bootstrap.sh --owner <owner> [--title "AI Scrum Board"]
 #   scripts/github_project/bootstrap.sh --owner <owner> --number 3   # 既存 Project を設定
@@ -26,6 +30,7 @@ TITLE="AI Scrum Board"
 NUMBER=""
 REPO=""
 NO_LINK=""
+FORCE_STATUS=""
 LINK_OK=""
 
 while [[ $# -gt 0 ]]; do
@@ -35,6 +40,7 @@ while [[ $# -gt 0 ]]; do
     --number)  NUMBER="${2:-}"; shift 2 ;;
     --repo)    REPO="${2:-}"; shift 2 ;;
     --no-link) NO_LINK="1"; shift ;;
+    --force-status-reset) FORCE_STATUS="1"; shift ;;
     -h|--help) sed -n '2,21p' "$0"; exit 0 ;;
     *) echo "不明な引数: $1" >&2; exit 2 ;;
   esac
@@ -194,12 +200,43 @@ for f in fields:
 '
 }
 
+project_item_count() {
+  gh api graphql -f query='query($id: ID!) { node(id: $id) { ... on ProjectV2 { items { totalCount } } } }' \
+    -F id="$PROJECT_ID" --jq '.data.node.items.totalCount' 2>/dev/null || echo 0
+}
+
 # ------------------------------------------------------- Status の選択肢を差し替え
 STATUS_ID="$(field_id "Status")"
 WANT_STATUS=$'New\nReady\nIn Progress\nReview\nDone'
 if [[ -n "$STATUS_ID" && "$(status_option_names)" == "$WANT_STATUS" ]]; then
   echo "==> Status フィールドの選択肢は設定済みです（スキップ）"
 elif [[ -n "$STATUS_ID" ]]; then
+  # updateProjectV2Field は選択肢を作り直すため、既存の選択肢 ID がすべて変わり、
+  # それを参照していたアイテムの Status は必ず空になる（実測で確認済み）。
+  # アイテムが入った Project では黙って壊さず、明示的な指定を要求する。
+  ITEM_COUNT="$(project_item_count)"
+  if [[ ! "$ITEM_COUNT" =~ ^[0-9]+$ ]]; then
+    ITEM_COUNT=0
+  fi
+  if [[ "$ITEM_COUNT" -gt 0 && -z "$FORCE_STATUS" ]]; then
+    cat >&2 <<MSG
+エラー: Project #${NUMBER} には既に ${ITEM_COUNT} 件のアイテムがあります。
+
+Status の選択肢を差し替えると、選択肢 ID が作り直されるため
+全アイテムの Status が空になります（元に戻せません）。
+
+対処のいずれかを選んでください:
+  1. Project 画面で Status の選択肢を手で
+     New / Ready / In Progress / Review / Done に揃える（値は保持されます）
+  2. 新しい Project を作ってそちらで実行する（--number を付けずに実行）
+  3. Status が消えてよいと分かっている場合のみ:
+       $0 --owner ${OWNER} --number ${NUMBER} --force-status-reset
+MSG
+    exit 1
+  fi
+  if [[ "$ITEM_COUNT" -gt 0 ]]; then
+    echo "==> ! アイテム ${ITEM_COUNT} 件の Status を破棄して選択肢を設定します（--force-status-reset）"
+  fi
   echo "==> Status フィールドの選択肢をスクラム用に設定します"
   gh api graphql -f query='
     mutation($fieldId: ID!) {
