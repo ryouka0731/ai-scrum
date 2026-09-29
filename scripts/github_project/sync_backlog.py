@@ -399,6 +399,37 @@ ORPHAN_COMMENT = (
     "（`status` が未完了の PBI であれば、この Issue が再オープンされます）。"
 )
 
+# 重複 Issue 用の文面。sync_issues が再オープンするのは PBI ごとの代表 Issue
+# （番号が最小のもの）だけなので、重複側に「戻せば再オープンされる」と書くと嘘になる。
+# 重複を再オープンすると 1 つの PBI にオープンな Issue が 2 つできてしまうため、
+# 再オープンしないこと自体は意図した挙動である。
+ORPHAN_DUPLICATE_COMMENT = (
+    ORPHAN_MARKER + "\n"
+    "この Issue は %(pbi_id)s の重複です（同期対象は #%(primary)d）。"
+    "%(pbi_id)s が `scrum/product_backlog.csv` / `scrum/product_backlog_done.csv` に"
+    "存在しないため、`sync_backlog.py --close-orphans` によりクローズ対象として処理します。\n\n"
+    "CSV に %(pbi_id)s を戻した場合、再オープンされるのは #%(primary)d だけです。"
+    "**この Issue はクローズのままになります。**"
+)
+
+
+def primary_issue_numbers(pbi_issues):
+    """PBI ごとの代表 Issue 番号を返す。fetch_pbi_issues の選び方（最小番号）に合わせる。"""
+    primary = {}
+    for pbi_id, issue in pbi_issues:
+        number = issue["number"]
+        if pbi_id not in primary or number < primary[pbi_id]:
+            primary[pbi_id] = number
+    return primary
+
+
+def orphan_comment_body(pbi_id, issue, primary):
+    """孤児 Issue に投稿する本文を返す。重複側には実際の挙動に合った文面を使う。"""
+    primary_number = primary.get(pbi_id)
+    if primary_number is not None and issue["number"] != primary_number:
+        return ORPHAN_DUPLICATE_COMMENT % {"pbi_id": pbi_id, "primary": primary_number}
+    return ORPHAN_COMMENT
+
 
 def has_orphan_comment(repo, number):
     """孤児クローズのコメントを既に投稿済みかを返す。
@@ -451,6 +482,7 @@ def report_orphan_issues(repo, rows, pbi_issues, close_orphans, dry_run):
         return 0
 
     failed = 0
+    primary = primary_issue_numbers(pbi_issues)
     for pbi_id, issue in still_open:
         print("  x 孤児 Issue をクローズ: #%s %s" % (issue["number"], pbi_id))
         # 失敗を握り潰すとクローズできていないのに成功扱いになるため、
@@ -459,7 +491,8 @@ def report_orphan_issues(repo, rows, pbi_issues, close_orphans, dry_run):
             # dry-run では投稿済み判定の API も叩かない（表示だけを行う）。
             if dry_run or not has_orphan_comment(repo, issue["number"]):
                 run_gh(["issue", "comment", str(issue["number"]), "--repo", repo,
-                        "--body", ORPHAN_COMMENT], dry_run=dry_run, mutating=True)
+                        "--body", orphan_comment_body(pbi_id, issue, primary)],
+                       dry_run=dry_run, mutating=True)
             run_gh(["issue", "close", str(issue["number"]), "--repo", repo,
                     "--reason", "not planned"], dry_run=dry_run, mutating=True)
         except GhError as exc:

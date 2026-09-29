@@ -18,6 +18,8 @@ from sync_backlog import (  # noqa: E402
     GhError,
     find_orphan_issues,
     parse_github_origin_url,
+    orphan_comment_body,
+    primary_issue_numbers,
     report_orphan_issues,
 )
 
@@ -276,6 +278,36 @@ class OrphanDryRunGuardTest(unittest.TestCase):
             report_orphan_issues("o/r", [], _pairs((10, "PBI-002")),
                                  close_orphans=True, dry_run=False)
         self.assertTrue(run.call_args_list)
+
+
+class OrphanCommentBodyTest(unittest.TestCase):
+    """重複 Issue には実際の挙動（再オープンされない）に合った文面を使うことを確認する。"""
+
+    def test_primary_issue_numbers_picks_lowest(self):
+        pairs = _pairs((21, "PBI-002"), (20, "PBI-002"), (30, "PBI-003"))
+        self.assertEqual({"PBI-002": 20, "PBI-003": 30}, primary_issue_numbers(pairs))
+
+    def test_primary_gets_standard_comment(self):
+        pairs = _pairs((20, "PBI-002"), (21, "PBI-002"))
+        body = orphan_comment_body("PBI-002", pairs[0][1], primary_issue_numbers(pairs))
+        self.assertEqual(sync_backlog.ORPHAN_COMMENT, body)
+
+    def test_duplicate_gets_duplicate_comment_naming_primary(self):
+        pairs = _pairs((20, "PBI-002"), (21, "PBI-002"))
+        body = orphan_comment_body("PBI-002", pairs[1][1], primary_issue_numbers(pairs))
+        self.assertIn("#20", body)
+        self.assertIn("クローズのままになります", body)
+        self.assertNotIn("この Issue が再オープンされます", body)
+
+    def test_duplicate_comment_keeps_marker_for_idempotency(self):
+        pairs = _pairs((20, "PBI-002"), (21, "PBI-002"))
+        body = orphan_comment_body("PBI-002", pairs[1][1], primary_issue_numbers(pairs))
+        self.assertIn(sync_backlog.ORPHAN_MARKER, body)
+
+    def test_sole_issue_is_not_treated_as_duplicate(self):
+        pairs = _pairs((20, "PBI-002"))
+        body = orphan_comment_body("PBI-002", pairs[0][1], primary_issue_numbers(pairs))
+        self.assertEqual(sync_backlog.ORPHAN_COMMENT, body)
 
 
 if __name__ == "__main__":
