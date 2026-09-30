@@ -244,11 +244,11 @@ gh aw compile
 リポジトリの **Settings > Secrets and variables > Actions** に登録します。
 必要なシークレットは**ワークフローが使う AI エンジンによって異なります**。
 
-| シークレット | 必須 | 用途 |
+| シークレット | 区分 | 用途 |
 |---|---|---|
 | `COPILOT_GITHUB_TOKEN` | **必須**（14本） | copilot エンジン用。スクラムイベント系（`run-*` / `scrum-events-worker-*`）すべて |
 | `ANTHROPIC_API_KEY` | **必須**（1本） | claude エンジン用。`ask-po-on-issue` のみ |
-| `GH_AW_GITHUB_TOKEN` | 推奨 | PR 作成・ブランチ push 用。未設定時は `GITHUB_TOKEN` にフォールバックするが、`push_to_pull_request_branch` は本トークンを直接参照する |
+| `GH_AW_GITHUB_TOKEN` | **必須**（オーケストレータ） | PR 作成・ブランチ push 用。`scrum-events-separated-single-pr.yml` は未設定だと冒頭で `GH_AW_GITHUB_TOKEN secret is required for worker safe-outputs` として中断する。他の箇所では `GITHUB_TOKEN` にフォールバックする |
 | `GH_AW_GITHUB_MCP_SERVER_TOKEN` | 任意 | GitHub MCP サーバー用。未設定時は `GH_AW_GITHUB_TOKEN` → `GITHUB_TOKEN` にフォールバック |
 | `GH_AW_CI_TRIGGER_TOKEN` | 任意 | 作成した PR で CI を起動するため |
 | `GH_AW_PLUGINS_TOKEN` | 任意 | 未設定時は `GH_AW_GITHUB_TOKEN` → `GITHUB_TOKEN` にフォールバック |

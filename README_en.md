@@ -250,11 +250,11 @@ gh aw compile
 Register these under **Settings > Secrets and variables > Actions**. Which secrets you need
 **depends on the AI engine each workflow uses**.
 
-| Secret | Required | Purpose |
+| Secret | Category | Purpose |
 |---|---|---|
 | `COPILOT_GITHUB_TOKEN` | **Required** (14 workflows) | copilot engine. All Scrum event workflows (`run-*` / `scrum-events-worker-*`) |
 | `ANTHROPIC_API_KEY` | **Required** (1 workflow) | claude engine. `ask-po-on-issue` only |
-| `GH_AW_GITHUB_TOKEN` | Recommended | Creating PRs and pushing branches. Falls back to `GITHUB_TOKEN`, except `push_to_pull_request_branch`, which references this secret directly |
+| `GH_AW_GITHUB_TOKEN` | **Required** (orchestrator) | Creating PRs and pushing branches. `scrum-events-separated-single-pr.yml` aborts up front with `GH_AW_GITHUB_TOKEN secret is required for worker safe-outputs` when unset. Elsewhere it falls back to `GITHUB_TOKEN` |
 | `GH_AW_GITHUB_MCP_SERVER_TOKEN` | Optional | GitHub MCP server. Falls back to `GH_AW_GITHUB_TOKEN`, then `GITHUB_TOKEN` |
 | `GH_AW_CI_TRIGGER_TOKEN` | Optional | Triggering CI on generated PRs |
 | `GH_AW_PLUGINS_TOKEN` | Optional | Falls back to `GH_AW_GITHUB_TOKEN`, then `GITHUB_TOKEN` |
