@@ -169,6 +169,12 @@ Issue に `/ask-po <相談内容>` とコメントすると、プロダクトオ
 シュリはこの場では `scrum/` を書き換えず、必要な変更を提案するだけです（スクラムイベント外での
 成果物変更を防ぐため）。
 
+> [!NOTE]
+> gh-aw の `command:` トリガーは `issue_comment` / `issues` / `pull_request` /
+> `pull_request_review_comment` / `discussion` / `discussion_comment` の6種類に展開されます。
+> そのため PR へのボットレビューコメント等でも起動し、`/ask-po` を含まなければ `skipped` で
+> 終わります。実害はありませんが Actions の実行数は増えます（PR 作業が多い日は 100 回以上）。
+
 ### エンジンとシークレット
 
 **このワークフローだけ `claude` エンジンを使い、既存の `ANTHROPIC_API_KEY` で動作します。**

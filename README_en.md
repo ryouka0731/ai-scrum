@@ -245,19 +245,33 @@ Always compile before running:
 gh aw compile
 ```
 
-#### 3. Required tokens
+#### 3. Required secrets
 
-The following two environment variables must be set:
+Register these under **Settings > Secrets and variables > Actions**. Which secrets you need
+**depends on the AI engine each workflow uses**.
 
-| Token | Description |
-|---|---|
-| `GH_AW_GITHUB_TOKEN` | GitHub personal access token |
-| `COPILOT_GITHUB_TOKEN` | Copilot GitHub token |
+| Secret | Category | Purpose |
+|---|---|---|
+| `COPILOT_GITHUB_TOKEN` | **Required** (14 workflows) | copilot engine. All Scrum event workflows (`run-*` / `scrum-events-worker-*`) |
+| `ANTHROPIC_API_KEY` | **Required** (1 workflow) | claude engine. `ask-po-on-issue` only |
+| `GH_AW_GITHUB_TOKEN` | **Required** (orchestrator) | Creating PRs and pushing branches. `scrum-events-separated-single-pr.yml` aborts up front with `GH_AW_GITHUB_TOKEN secret is required for worker safe-outputs` when unset. Elsewhere it falls back to `GITHUB_TOKEN` |
+| `GH_AW_GITHUB_MCP_SERVER_TOKEN` | Optional | GitHub MCP server. Falls back to `GH_AW_GITHUB_TOKEN`, then `GITHUB_TOKEN` |
+| `GH_AW_CI_TRIGGER_TOKEN` | Optional | Triggering CI on generated PRs |
+| `GH_AW_PLUGINS_TOKEN` | Optional | Falls back to `GH_AW_GITHUB_TOKEN`, then `GITHUB_TOKEN` |
 
-Both tokens require **Read and Write access** to:
+> [!IMPORTANT]
+> **The engine secret is validated before the agent starts.** Each workflow has a
+> `Validate <secret> secret` step, so a missing engine secret fails the run before any agent
+> work happens. The `# Secrets used:` header at the top of each `.lock.yml` lists what that
+> workflow uses.
+
+`GH_AW_GITHUB_TOKEN` requires **Read and Write access** to:
 - **Code**
 - **Pull requests**
 - **Workflows**
+
+> [!NOTE]
+> `COPILOT_GITHUB_TOKEN` must be a fine-grained PAT; OAuth tokens starting with `gho_` are rejected.
 
 #### 4. Repository settings
 
