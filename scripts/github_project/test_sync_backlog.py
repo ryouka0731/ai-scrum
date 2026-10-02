@@ -8,7 +8,11 @@
 """
 import contextlib
 import io
+import json
 import os
+import re
+import shutil
+import subprocess
 import sys
 import unittest
 from unittest import mock
@@ -584,16 +588,56 @@ class FetchPbiIssuesTest(unittest.TestCase):
         self.assertIn("state=all", args)
         self.assertIn("per_page=100", args)
 
-    def test_jq_projects_every_field_the_code_relies_on(self):
-        # body が落ちると merge_body が空本文を受け取り、マーカー外に人が書いた
-        # 文章を毎回消してしまう。url が .url になると Project への item-add が
-        # api.github.com の URL を渡されて失敗する。
+    EXPECTED_PROJECTION = {"number": "number", "title": "title", "body": "body",
+                           "state": "state", "url": "html_url"}
+
+    def _jq_filter(self):
         self._stub("")
         fetch_pbi_issues("o/r")
-        jq = self.calls[0][self.calls[0].index("--jq") + 1]
-        for field in ("number", "title", "body", "state"):
-            self.assertIn(field, jq, "%s が射影から落ちている" % field)
-        self.assertIn(".html_url", jq)
+        return self.calls[0][self.calls[0].index("--jq") + 1]
+
+    def test_jq_projection_maps_each_field_to_the_right_source(self):
+        # トークンの有無だけを見ると {number: .title, title: .number, ...} の
+        # ような取り違えを通してしまうため、対応関係まで検査する。
+        jq = self._jq_filter()
+        body = re.search(r"\{(.+)\}", jq)
+        self.assertIsNotNone(body, "射影 {...} が見つからない: %r" % jq)
+        mapping = {}
+        for part in body.group(1).split(","):
+            part = part.strip()
+            if ":" in part:
+                key, source = [x.strip() for x in part.split(":", 1)]
+                mapping[key] = source.lstrip(".")
+            else:
+                mapping[part] = part  # 省略形 `number` は number: .number と同義
+        self.assertEqual(self.EXPECTED_PROJECTION, mapping)
+
+    @unittest.skipUnless(shutil.which("jq"), "jq が無い環境ではスキップ")
+    def test_jq_filter_behaves_correctly_against_a_rest_payload(self):
+        """実際に jq を走らせて、PR 除外とフィールド対応を振る舞いで確認する。
+
+        文字列の検査だけだと取り違えを見逃すため、本物の REST ペイロードを
+        コード内の jq 式に通して出力そのものを突き合わせる。
+        """
+        payload = json.dumps([
+            {"number": 5, "title": "[PBI-001] 本物の Issue", "body": "本文",
+             "state": "open", "url": "https://api.github.com/repos/o/r/issues/5",
+             "html_url": "https://github.com/o/r/issues/5"},
+            {"number": 6, "title": "[PBI-002] これは PR", "body": "x",
+             "state": "open", "url": "https://api.github.com/repos/o/r/issues/6",
+             "html_url": "https://github.com/o/r/pull/6",
+             "pull_request": {"url": "https://api.github.com/repos/o/r/pulls/6"}},
+        ])
+        proc = subprocess.run(["jq", "-c", self._jq_filter()],
+                              input=payload.encode("utf-8"),
+                              stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        self.assertEqual(0, proc.returncode, proc.stderr.decode("utf-8", "replace"))
+        lines = [l for l in proc.stdout.decode("utf-8").splitlines() if l.strip()]
+        self.assertEqual(1, len(lines), "PR が除外されていない: %r" % lines)
+        self.assertEqual(
+            {"number": 5, "title": "[PBI-001] 本物の Issue", "body": "本文",
+             "state": "open", "url": "https://github.com/o/r/issues/5"},
+            json.loads(lines[0]))
 
     def test_excludes_pull_requests_in_the_jq_filter(self):
         # REST の issues エンドポイントは PR も返すため、除外が必要。
