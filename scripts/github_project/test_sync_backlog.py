@@ -6,7 +6,9 @@
   # または scripts/github_project/ 内で:
   python3 -m unittest test_sync_backlog -v
 """
+import ast
 import contextlib
+import glob
 import io
 import json
 import os
@@ -826,6 +828,45 @@ class SyncWorkflowArgsTest(unittest.TestCase):
         # push トリガーでは inputs.dry_run が空文字で渡る。
         out = self._run(token="pat", number="2", dry_run="")
         self.assertNotIn("--dry-run", out)
+
+
+class NoUnguardedOpenTest(unittest.TestCase):
+    """with を伴わない open() が無いことを AST で確認する。
+
+    ResourceWarning はファイルオブジェクトの __del__ 中に出るため、
+    -W error::ResourceWarning にしても Python が例外を無視し、テストは
+    失敗しない（実測済み）。そのため警告に頼らず静的に検出する。
+    """
+
+    @staticmethod
+    def _unguarded_open_lines(path):
+        with open(path, encoding="utf-8") as fh:
+            tree = ast.parse(fh.read(), path)
+        guarded = set()
+        for node in ast.walk(tree):
+            if isinstance(node, ast.With):
+                for item in node.items:
+                    guarded.add(id(item.context_expr))
+        lines = []
+        for node in ast.walk(tree):
+            if (isinstance(node, ast.Call)
+                    and isinstance(node.func, ast.Name)
+                    and node.func.id == "open"
+                    and id(node) not in guarded):
+                lines.append(node.lineno)
+        return lines
+
+    def test_no_unguarded_open_calls(self):
+        here = os.path.dirname(os.path.abspath(__file__))
+        targets = sorted(glob.glob(os.path.join(here, "*.py")))
+        self.assertTrue(targets, "検査対象の .py が見つからない")
+        offenders = {}
+        for path in targets:
+            lines = self._unguarded_open_lines(path)
+            if lines:
+                offenders[os.path.basename(path)] = lines
+        self.assertEqual({}, offenders,
+                         "with を伴わない open() がある（閉じ忘れ）: %s" % offenders)
 
 
 if __name__ == "__main__":

@@ -38,9 +38,11 @@ jobs:
       - name: 構文チェック
         run: python3 -m compileall -q scripts/github_project
       - name: テストを実行
-        # ResourceWarning をエラーにする。閉じ忘れたファイルハンドルを
-        # CI の出力に埋もれさせず落とすため。
-        run: python3 -W error::ResourceWarning -m unittest discover -s scripts/github_project -p "test_*.py"
+        # -W error::ResourceWarning は付けない。ResourceWarning はファイル
+        # オブジェクトの __del__ 中に出るため、例外にしても Python が
+        # "Exception ignored in" として無視し、テストは失敗しない（実測）。
+        # 閉じ忘れは test_no_unguarded_open_calls が AST で検出する。
+        run: python3 -m unittest discover -s scripts/github_project -p "test_*.py"
       - name: jq が利用可能であること
         # jq が無いと射影の振る舞いテストが黙って skip されるため明示的に確認する。
         run: jq --version
@@ -61,4 +63,4 @@ jobs:
       - name: 構文チェック
         run: python -m compileall -q scripts/github_project
       - name: テストを実行
-        run: python -W error::ResourceWarning -m unittest discover -s scripts/github_project -p "test_*.py"
+        run: python -m unittest discover -s scripts/github_project -p "test_*.py"
