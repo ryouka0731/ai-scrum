@@ -768,7 +768,8 @@ def _extract_run_block(path):
 
     runner 既定の python3 に PyYAML がある保証がないため、テキスト走査で抜く。
     """
-    raw = open(path, encoding="utf-8").read()
+    with open(path, encoding="utf-8") as fh:
+        raw = fh.read()
     m = re.search(r"^(\s+)run: \|\s*\n((?:\1\s.*\n|\s*\n)+)", raw, re.M)
     return textwrap.dedent(m.group(2)) if m else None
 
