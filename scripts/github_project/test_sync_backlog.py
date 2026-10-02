@@ -540,12 +540,16 @@ class FetchPbiIssuesTest(unittest.TestCase):
 
     def setUp(self):
         self._real = sync_backlog.run_gh
+        self.calls = []
 
     def tearDown(self):
         sync_backlog.run_gh = self._real
 
     def _stub(self, out=None, error=None):
         def fake(args, dry_run=False, mutating=False, check=True):
+            # 引数を記録する。検査しないスタブだと --paginate が外れても
+            # テストが通ってしまい、打ち切りによる重複作成を防げない。
+            self.calls.append(list(args))
             if error is not None:
                 raise error
             return out
@@ -558,6 +562,34 @@ class FetchPbiIssuesTest(unittest.TestCase):
                             "state": state,
                             "url": "https://github.com/o/r/issues/%d" % number},
                            ensure_ascii=False)
+
+    def test_requests_all_pages(self):
+        # --paginate が外れると 1 ページで打ち切られ、既存 Issue を見落として
+        # 同じ PBI の Issue を重複作成する。
+        self._stub("")
+        fetch_pbi_issues("o/r")
+        self.assertIn("--paginate", self.calls[0])
+
+    def test_targets_the_issues_endpoint_of_the_given_repo(self):
+        self._stub("")
+        fetch_pbi_issues("owner/name")
+        self.assertIn("repos/owner/name/issues", self.calls[0])
+
+    def test_requests_all_states_and_full_page_size(self):
+        # state=all が無いとクローズ済みの PBI Issue を見落とし、再作成する。
+        self._stub("")
+        fetch_pbi_issues("o/r")
+        args = self.calls[0]
+        self.assertIn("state=all", args)
+        self.assertIn("per_page=100", args)
+
+    def test_excludes_pull_requests_in_the_jq_filter(self):
+        # REST の issues エンドポイントは PR も返すため、除外が必要。
+        self._stub("")
+        fetch_pbi_issues("o/r")
+        jq = self.calls[0][self.calls[0].index("--jq") + 1]
+        self.assertIn("pull_request", jq)
+        self.assertIn("not", jq)
 
     def test_parses_one_object_per_line_across_pages(self):
         # --paginate はページごとの結果を続けて出すため、行単位で解析する。
