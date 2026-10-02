@@ -22,6 +22,7 @@ from sync_backlog import (  # noqa: E402
     parse_github_origin_url,
     UNKNOWN,
     build_body_block,
+    fetch_pbi_issues,
     desired_fields,
     orphan_comment_body,
     primary_issue_numbers,
@@ -528,6 +529,141 @@ class SyncProjectDateGuardTest(unittest.TestCase):
         cleared = [c[c.index("--field-id") + 1] for c in edits if "--clear" in c]
         self.assertIn("F_sd", cleared)
         self.assertIn("F_td", cleared)
+
+
+class FetchPbiIssuesTest(unittest.TestCase):
+    """--paginate 出力の解析を確認する。
+
+    ここが壊れると既存 Issue を見落とし、同じ PBI の Issue を重複作成する。
+    他のテストは run_gh をスタブして解析を迂回しているため、ここだけが解析を踏む。
+    """
+
+    def setUp(self):
+        self._real = sync_backlog.run_gh
+        self.calls = []
+
+    def tearDown(self):
+        sync_backlog.run_gh = self._real
+
+    def _stub(self, out=None, error=None):
+        def fake(args, dry_run=False, mutating=False, check=True):
+            # 引数を記録する。検査しないスタブだと --paginate が外れても
+            # テストが通ってしまい、打ち切りによる重複作成を防げない。
+            self.calls.append(list(args))
+            if error is not None:
+                raise error
+            return out
+        sync_backlog.run_gh = fake
+
+    @staticmethod
+    def _line(number, title, state="open", body=None):
+        import json as _json
+        return _json.dumps({"number": number, "title": title, "body": body,
+                            "state": state,
+                            "url": "https://github.com/o/r/issues/%d" % number},
+                           ensure_ascii=False)
+
+    def test_requests_all_pages(self):
+        # --paginate が外れると 1 ページで打ち切られ、既存 Issue を見落として
+        # 同じ PBI の Issue を重複作成する。
+        self._stub("")
+        fetch_pbi_issues("o/r")
+        self.assertIn("--paginate", self.calls[0])
+
+    def test_targets_the_issues_endpoint_of_the_given_repo(self):
+        self._stub("")
+        fetch_pbi_issues("owner/name")
+        self.assertIn("repos/owner/name/issues", self.calls[0])
+
+    def test_requests_all_states_and_full_page_size(self):
+        # state=all が無いとクローズ済みの PBI Issue を見落とし、再作成する。
+        self._stub("")
+        fetch_pbi_issues("o/r")
+        args = self.calls[0]
+        self.assertIn("state=all", args)
+        self.assertIn("per_page=100", args)
+
+    def test_excludes_pull_requests_in_the_jq_filter(self):
+        # REST の issues エンドポイントは PR も返すため、除外が必要。
+        self._stub("")
+        fetch_pbi_issues("o/r")
+        jq = self.calls[0][self.calls[0].index("--jq") + 1]
+        self.assertIn("pull_request", jq)
+        self.assertIn("not", jq)
+
+    def test_parses_one_object_per_line_across_pages(self):
+        # --paginate はページごとの結果を続けて出すため、行単位で解析する。
+        out = "\n".join([
+            self._line(1, "[PBI-001] 1ページ目"),
+            self._line(2, "[PBI-002] 1ページ目"),
+            self._line(101, "[PBI-003] 2ページ目"),
+        ]) + "\n"
+        self._stub(out)
+        primary, pairs = fetch_pbi_issues("o/r")
+        self.assertEqual(["PBI-001", "PBI-002", "PBI-003"], sorted(primary))
+        self.assertEqual(3, len(pairs))
+
+    def test_normalizes_rest_state_and_null_body(self):
+        # REST は state が小文字、body が null。gh issue list の形式に揃える。
+        self._stub(self._line(1, "[PBI-001] t", state="closed", body=None))
+        primary, _ = fetch_pbi_issues("o/r")
+        self.assertEqual("CLOSED", primary["PBI-001"]["state"])
+        self.assertEqual("", primary["PBI-001"]["body"])
+
+    def test_tolerates_blank_lines(self):
+        self._stub("\n" + self._line(1, "[PBI-001] t") + "\n\n")
+        primary, _ = fetch_pbi_issues("o/r")
+        self.assertEqual(["PBI-001"], list(primary))
+
+    def test_empty_output_yields_nothing(self):
+        self._stub("")
+        self.assertEqual(({}, []), fetch_pbi_issues("o/r"))
+
+    def test_filters_non_pbi_titles(self):
+        out = "\n".join([
+            self._line(1, "[PBI-001] 対象"),
+            self._line(2, "ただのバグ報告"),
+            self._line(3, "PBI-002 括弧なしは対象外"),
+        ])
+        self._stub(out)
+        primary, pairs = fetch_pbi_issues("o/r")
+        self.assertEqual(["PBI-001"], list(primary))
+        self.assertEqual(1, len(pairs))
+
+    def test_duplicate_pbi_keeps_lowest_number_but_lists_both(self):
+        out = "\n".join([
+            self._line(21, "[PBI-002] 後から作られた方"),
+            self._line(20, "[PBI-002] 先に作られた方"),
+        ])
+        self._stub(out)
+        with contextlib.redirect_stderr(io.StringIO()):
+            primary, pairs = fetch_pbi_issues("o/r")
+        self.assertEqual(20, primary["PBI-002"]["number"])
+        self.assertEqual([20, 21], sorted(i["number"] for _, i in pairs))
+
+    def test_title_with_escaped_characters_is_parsed(self):
+        # jq は引用符やバックスラッシュをエスケープして 1 行で出す。
+        # 行分割と json.loads を通しても元のタイトルに戻ること。
+        title = '[PBI-001] "引用符" と \\ と 絵文字 \U0001f600'
+        self._stub(self._line(1, title))
+        primary, _ = fetch_pbi_issues("o/r")
+        self.assertEqual(title, primary["PBI-001"]["title"])
+
+    def test_disabled_issues_error_is_rewritten_with_remedy(self):
+        self._stub(error=sync_backlog.GhError(
+            "gh api --paginate failed: the 'o/r' repository has disabled issues"))
+        with self.assertRaises(sync_backlog.GhError) as cm:
+            fetch_pbi_issues("o/r")
+        msg = str(cm.exception)
+        self.assertIn("Issue が無効になっています", msg)
+        self.assertIn("gh repo edit o/r --enable-issues", msg)
+
+    def test_other_errors_propagate_unchanged(self):
+        self._stub(error=sync_backlog.GhError("gh api failed: 503 Service Unavailable"))
+        with self.assertRaises(sync_backlog.GhError) as cm:
+            fetch_pbi_issues("o/r")
+        self.assertIn("503", str(cm.exception))
+        self.assertNotIn("Issue が無効", str(cm.exception))
 
 
 if __name__ == "__main__":
