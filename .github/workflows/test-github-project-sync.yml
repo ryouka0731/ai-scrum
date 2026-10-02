@@ -9,10 +9,12 @@ on:
     branches: [main]
     paths:
       - "scripts/github_project/**"
+      - ".github/workflows/sync-github-project.yml"
       - ".github/workflows/test-github-project-sync.yml"
   pull_request:
     paths:
       - "scripts/github_project/**"
+      - ".github/workflows/sync-github-project.yml"
       - ".github/workflows/test-github-project-sync.yml"
   workflow_dispatch:
 
