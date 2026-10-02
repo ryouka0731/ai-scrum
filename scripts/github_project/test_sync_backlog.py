@@ -8,7 +8,11 @@
 """
 import contextlib
 import io
+import json
 import os
+import re
+import shutil
+import subprocess
 import sys
 import unittest
 from unittest import mock
@@ -545,7 +549,7 @@ class FetchPbiIssuesTest(unittest.TestCase):
     def tearDown(self):
         sync_backlog.run_gh = self._real
 
-    def _stub(self, out=None, error=None):
+    def _stub(self, out="", error=None):
         def fake(args, dry_run=False, mutating=False, check=True):
             # 引数を記録する。検査しないスタブだと --paginate が外れても
             # テストが通ってしまい、打ち切りによる重複作成を防げない。
@@ -556,12 +560,13 @@ class FetchPbiIssuesTest(unittest.TestCase):
         sync_backlog.run_gh = fake
 
     @staticmethod
-    def _line(number, title, state="open", body=None):
+    def _line(number, title, state="open", body=None, with_body=True):
         import json as _json
-        return _json.dumps({"number": number, "title": title, "body": body,
-                            "state": state,
-                            "url": "https://github.com/o/r/issues/%d" % number},
-                           ensure_ascii=False)
+        obj = {"number": number, "title": title, "state": state,
+               "url": "https://github.com/o/r/issues/%d" % number}
+        if with_body:
+            obj["body"] = body
+        return _json.dumps(obj, ensure_ascii=False)
 
     def test_requests_all_pages(self):
         # --paginate が外れると 1 ページで打ち切られ、既存 Issue を見落として
@@ -582,6 +587,57 @@ class FetchPbiIssuesTest(unittest.TestCase):
         args = self.calls[0]
         self.assertIn("state=all", args)
         self.assertIn("per_page=100", args)
+
+    EXPECTED_PROJECTION = {"number": "number", "title": "title", "body": "body",
+                           "state": "state", "url": "html_url"}
+
+    def _jq_filter(self):
+        self._stub("")
+        fetch_pbi_issues("o/r")
+        return self.calls[0][self.calls[0].index("--jq") + 1]
+
+    def test_jq_projection_maps_each_field_to_the_right_source(self):
+        # トークンの有無だけを見ると {number: .title, title: .number, ...} の
+        # ような取り違えを通してしまうため、対応関係まで検査する。
+        jq = self._jq_filter()
+        body = re.search(r"\{(.+)\}", jq)
+        self.assertIsNotNone(body, "射影 {...} が見つからない: %r" % jq)
+        mapping = {}
+        for part in body.group(1).split(","):
+            part = part.strip()
+            if ":" in part:
+                key, source = [x.strip() for x in part.split(":", 1)]
+                mapping[key] = source.lstrip(".")
+            else:
+                mapping[part] = part  # 省略形 `number` は number: .number と同義
+        self.assertEqual(self.EXPECTED_PROJECTION, mapping)
+
+    @unittest.skipUnless(shutil.which("jq"), "jq が無い環境ではスキップ")
+    def test_jq_filter_behaves_correctly_against_a_rest_payload(self):
+        """実際に jq を走らせて、PR 除外とフィールド対応を振る舞いで確認する。
+
+        文字列の検査だけだと取り違えを見逃すため、本物の REST ペイロードを
+        コード内の jq 式に通して出力そのものを突き合わせる。
+        """
+        payload = json.dumps([
+            {"number": 5, "title": "[PBI-001] 本物の Issue", "body": "本文",
+             "state": "open", "url": "https://api.github.com/repos/o/r/issues/5",
+             "html_url": "https://github.com/o/r/issues/5"},
+            {"number": 6, "title": "[PBI-002] これは PR", "body": "x",
+             "state": "open", "url": "https://api.github.com/repos/o/r/issues/6",
+             "html_url": "https://github.com/o/r/pull/6",
+             "pull_request": {"url": "https://api.github.com/repos/o/r/pulls/6"}},
+        ])
+        proc = subprocess.run(["jq", "-c", self._jq_filter()],
+                              input=payload.encode("utf-8"),
+                              stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        self.assertEqual(0, proc.returncode, proc.stderr.decode("utf-8", "replace"))
+        lines = [l for l in proc.stdout.decode("utf-8").splitlines() if l.strip()]
+        self.assertEqual(1, len(lines), "PR が除外されていない: %r" % lines)
+        self.assertEqual(
+            {"number": 5, "title": "[PBI-001] 本物の Issue", "body": "本文",
+             "state": "open", "url": "https://github.com/o/r/issues/5"},
+            json.loads(lines[0]))
 
     def test_excludes_pull_requests_in_the_jq_filter(self):
         # REST の issues エンドポイントは PR も返すため、除外が必要。
@@ -630,16 +686,38 @@ class FetchPbiIssuesTest(unittest.TestCase):
         self.assertEqual(["PBI-001"], list(primary))
         self.assertEqual(1, len(pairs))
 
-    def test_duplicate_pbi_keeps_lowest_number_but_lists_both(self):
-        out = "\n".join([
+    def _dup_out(self):
+        return "\n".join([
             self._line(21, "[PBI-002] 後から作られた方"),
             self._line(20, "[PBI-002] 先に作られた方"),
         ])
-        self._stub(out)
+
+    def test_duplicate_pbi_keeps_lowest_number_but_lists_both(self):
+        self._stub(self._dup_out())
         with contextlib.redirect_stderr(io.StringIO()):
             primary, pairs = fetch_pbi_issues("o/r")
         self.assertEqual(20, primary["PBI-002"]["number"])
         self.assertEqual([20, 21], sorted(i["number"] for _, i in pairs))
+
+    def test_duplicate_warning_becomes_an_annotation_on_actions(self):
+        # 素の stderr だと CI でログを開かないと重複に気付けない。
+        self._stub(self._dup_out())
+        out, err = io.StringIO(), io.StringIO()
+        with mock.patch.dict(os.environ, {"GITHUB_ACTIONS": "true"}, clear=False):
+            with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+                fetch_pbi_issues("o/r")
+        self.assertIn("::warning::", out.getvalue())
+        self.assertIn("#20", out.getvalue())
+        self.assertIn("#21", out.getvalue())
+
+    def test_duplicate_warning_goes_to_stderr_outside_actions(self):
+        self._stub(self._dup_out())
+        out, err = io.StringIO(), io.StringIO()
+        with mock.patch.dict(os.environ, {"GITHUB_ACTIONS": ""}, clear=False):
+            with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+                fetch_pbi_issues("o/r")
+        self.assertNotIn("::warning::", out.getvalue())
+        self.assertIn("複数あります", err.getvalue())
 
     def test_title_with_escaped_characters_is_parsed(self):
         # jq は引用符やバックスラッシュをエスケープして 1 行で出す。
@@ -649,14 +727,28 @@ class FetchPbiIssuesTest(unittest.TestCase):
         primary, _ = fetch_pbi_issues("o/r")
         self.assertEqual(title, primary["PBI-001"]["title"])
 
-    def test_disabled_issues_error_is_rewritten_with_remedy(self):
+    # run_gh は "gh %s failed: %s" % (" ".join(args[:3]), err) を投げる。
+    # この関数の args[:3] は ["api", "--paginate", "-X"]。
+    ERR_PREFIX = "gh api --paginate -X failed: "
+
+    def test_rest_410_wording_is_rewritten_with_remedy(self):
+        # gh api（REST）は issues 無効のリポジトリに HTTP 410 と
+        # "Issues are disabled for this repo" を返す。実際に通るのはこの経路。
         self._stub(error=sync_backlog.GhError(
-            "gh api --paginate failed: the 'o/r' repository has disabled issues"))
+            self.ERR_PREFIX + "HTTP 410: Issues are disabled for this repo"))
         with self.assertRaises(sync_backlog.GhError) as cm:
             fetch_pbi_issues("o/r")
         msg = str(cm.exception)
         self.assertIn("Issue が無効になっています", msg)
         self.assertIn("gh repo edit o/r --enable-issues", msg)
+
+    def test_cli_wording_is_also_rewritten(self):
+        # gh issue list 系の文言。将来取得方法を変えても案内が出るよう両方受ける。
+        self._stub(error=sync_backlog.GhError(
+            self.ERR_PREFIX + "the 'o/r' repository has disabled issues"))
+        with self.assertRaises(sync_backlog.GhError) as cm:
+            fetch_pbi_issues("o/r")
+        self.assertIn("gh repo edit o/r --enable-issues", str(cm.exception))
 
     def test_other_errors_propagate_unchanged(self):
         self._stub(error=sync_backlog.GhError("gh api failed: 503 Service Unavailable"))

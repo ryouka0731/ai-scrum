@@ -332,8 +332,10 @@ def fetch_pbi_issues(repo):
         pbi_id = m.group(1)
         all_pairs.append((pbi_id, issue))
         if pbi_id in issues:
-            print("  ! %s に対応する Issue が複数あります (#%s と #%s)。番号の小さい方を使います"
-                  % (pbi_id, issues[pbi_id]["number"], issue["number"]), file=sys.stderr)
+            # 孤児警告と同じく注釈にする。素の stderr だと CI でログを開かないと
+            # 重複に気付けない（PR #19 で warn() を入れた理由と同じ）。
+            warn("  ! %s に対応する Issue が複数あります (#%s と #%s)。番号の小さい方を使います"
+                 % (pbi_id, issues[pbi_id]["number"], issue["number"]))
             if issue["number"] > issues[pbi_id]["number"]:
                 continue
         issues[pbi_id] = issue
