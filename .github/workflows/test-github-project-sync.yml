@@ -1,0 +1,66 @@
+name: GitHub Project 同期スクリプトのテスト
+
+# scripts/github_project/ のテストを実行する。
+# このスクリプトは Issue の作成・クローズと Project のフィールド更新を行うため、
+# 退行がそのままデータ損失になりうる。ローカル実行だけに頼らず CI で強制する。
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "scripts/github_project/**"
+      - ".github/workflows/sync-github-project.yml"
+      - ".github/workflows/test-github-project-sync.yml"
+  pull_request:
+    paths:
+      - "scripts/github_project/**"
+      - ".github/workflows/sync-github-project.yml"
+      - ".github/workflows/test-github-project-sync.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: test-github-project-sync-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # 同期ワークフローは setup-python を使わず素の python3 で起動するため、
+  # 本番と同じ呼び出し方でも通ることを確認する。
+  runner-default:
+    name: runner 既定の python3
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: バージョンを記録
+        run: python3 --version
+      - name: 構文チェック
+        run: python3 -m compileall -q scripts/github_project
+      - name: テストを実行
+        # -W error::ResourceWarning は付けない。ResourceWarning はファイル
+        # オブジェクトの __del__ 中に出るため、例外にしても Python が
+        # "Exception ignored in" として無視し、テストは失敗しない（実測）。
+        # 閉じ忘れは test_no_unguarded_open_calls が AST で検出する。
+        run: python3 -m unittest discover -s scripts/github_project -p "test_*.py"
+      - name: jq が利用可能であること
+        # jq が無いと射影の振る舞いテストが黙って skip されるため明示的に確認する。
+        run: jq --version
+
+  versions:
+    name: Python ${{ matrix.python-version }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # 3.8 は開発機のバージョン。3.9 以降の構文が混ざると落ちる。
+        python-version: ["3.8", "3.13"]
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: 構文チェック
+        run: python -m compileall -q scripts/github_project
+      - name: テストを実行
+        run: python -m unittest discover -s scripts/github_project -p "test_*.py"

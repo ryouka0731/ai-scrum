@@ -6,13 +6,16 @@
   # または scripts/github_project/ 内で:
   python3 -m unittest test_sync_backlog -v
 """
+import ast
 import contextlib
+import glob
 import io
 import json
 import os
 import re
 import shutil
 import subprocess
+import textwrap
 import sys
 import unittest
 from unittest import mock
@@ -756,6 +759,114 @@ class FetchPbiIssuesTest(unittest.TestCase):
             fetch_pbi_issues("o/r")
         self.assertIn("503", str(cm.exception))
         self.assertNotIn("Issue が無効", str(cm.exception))
+
+
+REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+SYNC_WORKFLOW = os.path.join(REPO_ROOT, ".github", "workflows", "sync-github-project.yml")
+
+
+def _extract_run_block(path):
+    """ワークフローの `run: |` ブロックを取り出す。PyYAML に依存しない。
+
+    runner 既定の python3 に PyYAML がある保証がないため、テキスト走査で抜く。
+    """
+    with open(path, encoding="utf-8") as fh:
+        raw = fh.read()
+    m = re.search(r"^(\s+)run: \|\s*\n((?:\1\s.*\n|\s*\n)+)", raw, re.M)
+    return textwrap.dedent(m.group(2)) if m else None
+
+
+@unittest.skipUnless(shutil.which("bash"), "bash が無い環境ではスキップ")
+class SyncWorkflowArgsTest(unittest.TestCase):
+    """同期ワークフローの引数組み立てを検証する。
+
+    テスト本体は Python 側しか見ていないため、ワークフローのシェルロジックは
+    無検査だった。ここを間違えると Project 同期が黙ってスキップされたり、
+    dry-run のつもりが本番実行になったりする。
+    """
+
+    def setUp(self):
+        self.script = _extract_run_block(SYNC_WORKFLOW)
+        self.assertIsNotNone(self.script, "run ブロックを抽出できなかった")
+        # 実際にスクリプトを起動せず、渡される引数だけを見る。
+        self.script = self.script.replace(
+            "python3 scripts/github_project/sync_backlog.py", "echo ARGS:")
+
+    def _run(self, token="", number="", dry_run=""):
+        env = dict(os.environ)
+        env.update({"PROJECT_TOKEN": token, "FALLBACK_TOKEN": "ghs_fallback",
+                    "PROJECT_NUMBER": number, "DRY_RUN": dry_run,
+                    "GITHUB_REPOSITORY": "o/r"})
+        proc = subprocess.run(["bash", "-c", self.script], env=env,
+                              stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        self.assertEqual(0, proc.returncode, proc.stdout.decode("utf-8", "replace"))
+        return proc.stdout.decode("utf-8")
+
+    def test_project_sync_when_token_and_number_are_set(self):
+        out = self._run(token="pat", number="2")
+        self.assertIn("ARGS: --project-number 2", out)
+        self.assertNotIn("--issues-only", out)
+
+    def test_falls_back_to_issues_only_without_token(self):
+        # PAT が無いと Projects V2 に書けないため Issue だけ同期する。
+        out = self._run(token="", number="2")
+        self.assertIn("--issues-only", out)
+        self.assertIn("::warning::", out)
+        self.assertNotIn("--project-number", out)
+
+    def test_falls_back_to_issues_only_when_number_is_not_numeric(self):
+        out = self._run(token="pat", number="not-a-number")
+        self.assertIn("--issues-only", out)
+        self.assertIn("::warning::", out)
+
+    def test_dry_run_input_adds_the_flag(self):
+        # ここを取り違えると dry-run のつもりが本番実行になる。
+        out = self._run(token="pat", number="2", dry_run="true")
+        self.assertIn("--dry-run", out)
+
+    def test_absent_dry_run_input_does_not_add_the_flag(self):
+        # push トリガーでは inputs.dry_run が空文字で渡る。
+        out = self._run(token="pat", number="2", dry_run="")
+        self.assertNotIn("--dry-run", out)
+
+
+class NoUnguardedOpenTest(unittest.TestCase):
+    """with を伴わない open() が無いことを AST で確認する。
+
+    ResourceWarning はファイルオブジェクトの __del__ 中に出るため、
+    -W error::ResourceWarning にしても Python が例外を無視し、テストは
+    失敗しない（実測済み）。そのため警告に頼らず静的に検出する。
+    """
+
+    @staticmethod
+    def _unguarded_open_lines(path):
+        with open(path, encoding="utf-8") as fh:
+            tree = ast.parse(fh.read(), path)
+        guarded = set()
+        for node in ast.walk(tree):
+            if isinstance(node, ast.With):
+                for item in node.items:
+                    guarded.add(id(item.context_expr))
+        lines = []
+        for node in ast.walk(tree):
+            if (isinstance(node, ast.Call)
+                    and isinstance(node.func, ast.Name)
+                    and node.func.id == "open"
+                    and id(node) not in guarded):
+                lines.append(node.lineno)
+        return lines
+
+    def test_no_unguarded_open_calls(self):
+        here = os.path.dirname(os.path.abspath(__file__))
+        targets = sorted(glob.glob(os.path.join(here, "*.py")))
+        self.assertTrue(targets, "検査対象の .py が見つからない")
+        offenders = {}
+        for path in targets:
+            lines = self._unguarded_open_lines(path)
+            if lines:
+                offenders[os.path.basename(path)] = lines
+        self.assertEqual({}, offenders,
+                         "with を伴わない open() がある（閉じ忘れ）: %s" % offenders)
 
 
 if __name__ == "__main__":
